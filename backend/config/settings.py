@@ -26,18 +26,18 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third Party Apps
+    # Third-party
     'rest_framework',
     'corsheaders',
 
-    # Local Apps
+    # Local apps
     'core',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware', # CORS Middleware
+    'corsheaders.middleware.CorsMiddleware',  # Enable CORS
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -65,32 +65,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database
+# ===============================================
+# POSTGRES - CONNECT TO NEON DATABASE
+# ===============================================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'creative_db',      
-        'USER': 'postgres',         
-        'PASSWORD': 'creative2025', # UPDATED: Matches the reset command above
-        'HOST': '127.0.0.1',        
-        'PORT': '2524',             # Keep as 2524 (Correct Port)
+        'NAME': 'creative_booking',    
+        'USER': 'neondb_owner',         
+        'PASSWORD': 'npg_kAJbVd9Rn3PH', # UPDATED: Matches the reset command above
+        'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
+        'PORT': '5432',             # Keep as 2524 (Correct Port)
     }
 }
 
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
 # Internationalization

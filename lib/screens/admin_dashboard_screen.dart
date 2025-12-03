@@ -1,0 +1,443 @@
+import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../services/api_service.dart';
+import '../models/creative.dart';
+import '../models/product.dart';
+import 'login_screen.dart';
+
+class AdminDashboardScreen extends StatefulWidget {
+  const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> with SingleTickerProviderStateMixin {
+  late Future<List<Creative>> _futurePending;
+  late Future<List<Creative>> _futureVerified;
+  late Future<List<Product>> _futureProducts;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    // 3 Tabs: Pending Requests, Verified Providers, All Products
+    _tabController = TabController(length: 3, vsync: this); 
+    _loadData();
+  }
+
+  void _loadData() {
+    setState(() {
+      _futurePending = ApiService.fetchPendingCreatives();
+      _futureVerified = ApiService.fetchAllVerifiedCreatives(); 
+      _futureProducts = ApiService.fetchAllProducts();
+    });
+  }
+
+  Future<void> _handleAction(int id, String action) async {
+    // Optimistic UI update: we assume success to make app feel faster, 
+    // or wait for result. Here we wait.
+    bool success = await ApiService.manageCreativeProfile(id, action);
+    
+    if (success && mounted) {
+      String message = "";
+      if (action == 'approve') message = "Provider Approved Successfully";
+      if (action == 'decline') message = "Provider Request Declined";
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: action == 'approve' ? const Color(0xFF10B981) : Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _loadData(); // Refresh lists to move item from Pending to Verified or remove it
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Action failed. Please try again."), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _logout() async {
+    await ApiService.logout();
+    if (mounted) {
+      Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (context) => const LoginScreen())
+      );
+    }
+  }
+
+  String _fixImageUrl(String url) {
+    if (url.startsWith('http')) {
+      if (!kIsWeb) {
+        if (url.contains('127.0.0.1')) return url.replaceFirst('127.0.0.1', '10.0.2.2');
+        if (url.contains('localhost')) return url.replaceFirst('localhost', '10.0.2.2');
+      }
+      if (kIsWeb && url.contains('10.0.2.2')) return url.replaceFirst('10.0.2.2', '127.0.0.1');
+      return url;
+    } else {
+      String base = kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000';
+      return '$base$url';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      appBar: AppBar(
+        title: Text("Admin Panel", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFF111827))),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            onPressed: _logout,
+          )
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: const Color(0xFF4F46E5),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: const Color(0xFF4F46E5),
+          labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+          tabs: const [
+            Tab(text: "Pending"),
+            Tab(text: "Verified"),
+            Tab(text: "Products"),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          // --- STATISTICS HEADER ---
+          _buildStatsHeader(),
+          
+          // --- TABS CONTENT ---
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildList(isPending: true),
+                _buildList(isPending: false),
+                _buildProductsGrid(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Top Stats Area
+  Widget _buildStatsHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      color: Colors.white,
+      child: Row(
+        children: [
+          Expanded(
+            child: FutureBuilder<List<Creative>>(
+              future: _futureVerified,
+              builder: (context, snapshot) {
+                String count = snapshot.hasData ? "${snapshot.data!.length}" : "-";
+                return _buildStatCard("Active Providers", count, Icons.people_alt_rounded, Colors.blue);
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: FutureBuilder<List<Product>>(
+              future: _futureProducts,
+              builder: (context, snapshot) {
+                String count = snapshot.hasData ? "${snapshot.data!.length}" : "-";
+                return _buildStatCard("Total Products", count, Icons.inventory_2_rounded, Colors.orange);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String count, IconData icon, MaterialColor color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(count, style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: color.shade800)),
+              Icon(icon, color: color.shade400, size: 20),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(title, style: GoogleFonts.plusJakartaSans(color: color.shade700, fontSize: 13, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  // Provider Lists (Pending & Verified)
+  Widget _buildList({required bool isPending}) {
+    return FutureBuilder<List<Creative>>(
+      future: isPending ? _futurePending : _futureVerified,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isPending ? Icons.check_circle_outline : Icons.people_outline, 
+                  size: 64, color: Colors.grey[300]
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isPending ? "No pending requests" : "No verified providers yet", 
+                  style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(20),
+          itemCount: snapshot.data!.length,
+          separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final creative = snapshot.data![index];
+            return _buildProviderCard(creative, isPending);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProviderCard(Creative creative, bool isPending) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFEEF2FF),
+                backgroundImage: (creative.profileImageUrl != null) 
+                    ? NetworkImage(_fixImageUrl(creative.profileImageUrl!)) 
+                    : null,
+                child: (creative.profileImageUrl == null) 
+                    ? Text(
+                        creative.user.firstName.isNotEmpty ? creative.user.firstName[0].toUpperCase() : "U", 
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFF4F46E5))
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "${creative.user.firstName} ${creative.user.lastName}",
+                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    Text(
+                      creative.subCategory.name,
+                      style: GoogleFonts.plusJakartaSans(color: Colors.grey[500], fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              if (isPending)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                  child: Text("Pending", style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold)),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
+                  child: Text("Verified", style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(Icons.email_outlined, creative.user.email),
+          const SizedBox(height: 8),
+          _buildInfoRow(Icons.description_outlined, creative.bio, maxLines: 2),
+          
+          const SizedBox(height: 20),
+          
+          // --- ACTION BUTTONS ---
+          Row(
+            children: [
+              if (isPending) ...[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _handleAction(creative.id, 'decline'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text("Decline"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _handleAction(creative.id, 'approve'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text("Approve"),
+                  ),
+                ),
+              ] else ...[
+                // For Verified Users, provide option to remove
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _handleAction(creative.id, 'decline'), // Reusing decline logic to delete
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: BorderSide(color: Colors.red.shade200),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text("Remove Provider"),
+                  ),
+                ),
+              ]
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text, {int maxLines = 1}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[400]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text, 
+            style: GoogleFonts.plusJakartaSans(color: Colors.grey[700], fontSize: 13),
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- PRODUCTS GRID (For Admin to See) ---
+  Widget _buildProductsGrid() {
+    return FutureBuilder<List<Product>>(
+      future: _futureProducts,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text("No products available", style: GoogleFonts.plusJakartaSans(color: Colors.grey)));
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(20),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.75,
+          ),
+          itemCount: snapshot.data!.length,
+          itemBuilder: (context, index) {
+            final product = snapshot.data![index];
+            return _buildProductCard(product);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProductCard(Product product) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: product.imageUrl != null 
+                ? Image.network(
+                    _fixImageUrl(product.imageUrl!),
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (ctx, err, stack) => Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                  )
+                : Container(color: Colors.grey[200], child: const Icon(Icons.image, color: Colors.grey)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  "\$${product.price.toStringAsFixed(2)}",
+                  style: GoogleFonts.plusJakartaSans(color: const Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}

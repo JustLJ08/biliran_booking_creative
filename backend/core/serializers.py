@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers # type: ignore
 from .models import User, IndustryCategory, SubCategory, CreativeProfile, Booking, ServicePackage, Product, Order
 
 # --- NEW: Registration Serializer ---

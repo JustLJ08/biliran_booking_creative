@@ -6,6 +6,7 @@ import 'home_screen.dart';
 import 'signup_screen.dart';
 import 'provider_dashboard_screen.dart';
 import 'create_profile_screen.dart';
+import 'admin_dashboard_screen.dart'; // Added Admin import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,10 +48,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success && mounted) {
       final prefs = await SharedPreferences.getInstance();
-      final role = prefs.getString('role'); // 'client' or 'creative'
+      final role = prefs.getString('role'); // 'client', 'creative', or 'admin'
 
       if (mounted) {
-        if (role == 'creative' || role == 'Creative Professional') {
+        // --- ROUTING LOGIC ---
+        if (role == 'admin') {
+          // 1. Admin -> Admin Dashboard
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+        } 
+        else if (role == 'creative' || role == 'Creative Professional') {
+          // 2. Creative -> Check Profile -> Dashboard or Create Profile
           bool hasProfile = await ApiService.hasCreativeProfile();
           
           if (hasProfile) {
@@ -58,7 +65,9 @@ class _LoginScreenState extends State<LoginScreen> {
           } else {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CreateProfileScreen()));
           }
-        } else {
+        } 
+        else {
+          // 3. Client (Default) -> Home Screen
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
         }
       }

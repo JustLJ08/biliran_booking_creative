@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path # type: ignore
+from .views import AdminPendingCreatives, admin_manage_creative # Import the new views
 from .views import get_booking_contract, sign_contract
 from .views import (
     RegisterView, LoginView,
@@ -48,4 +49,8 @@ urlpatterns = [
 
     path('contract/booking/<int:booking_id>/', get_booking_contract, name='get-contract'),
     path('contract/sign/<int:contract_id>/', sign_contract, name='sign-contract'),
+
+    #admin
+    path('admin/pending-creatives/', AdminPendingCreatives.as_view(), name='admin-pending-list'),
+    path('admin/manage-creative/<int:pk>/', admin_manage_creative, name='admin-manage-creative'),
 ]

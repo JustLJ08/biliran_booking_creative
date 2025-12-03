@@ -208,6 +208,23 @@ class ApiService {
     }
   }
 
+  // --- NEW: Fetch ALL Verified Creatives (For Admin Stats) ---
+  static Future<List<Creative>> fetchAllVerifiedCreatives() async {
+    // Calling the endpoint without subcategory_id returns all verified
+    final url = Uri.parse('$baseUrl/creatives/'); 
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => Creative.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching all creatives: $e");
+      return [];
+    }
+  }
+
   // ===========================================================================
   // BOOKINGS
   // ===========================================================================
@@ -280,7 +297,7 @@ class ApiService {
   static Future<bool> createCreativeProfile(
     int subCategoryId,
     String bio,
-    double hourlyRate, // REVERTED: variable name
+    double hourlyRate,
     String? portfolioUrl,
   ) async {
     final prefs = await SharedPreferences.getInstance();
@@ -296,7 +313,7 @@ class ApiService {
         body: json.encode({
           'sub_category_id': subCategoryId,
           'bio': bio,
-          'hourly_rate': hourlyRate, // REVERTED: Sent as hourly_rate
+          'hourly_rate': hourlyRate,
           'portfolio_url': portfolioUrl,
           'user': userId,
         }),
@@ -480,6 +497,41 @@ class ApiService {
     } catch (e) {
       print("Error fetching orders: $e");
       return [];
+    }
+  }
+
+  // ===========================================================================
+  // ADMIN FUNCTIONS
+  // ===========================================================================
+
+  static Future<List<Creative>> fetchPendingCreatives() async {
+    final url = Uri.parse('$baseUrl/admin/pending-creatives/');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => Creative.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching pending creatives: $e");
+      return [];
+    }
+  }
+
+  static Future<bool> manageCreativeProfile(int profileId, String action) async {
+    // action should be 'approve' or 'decline'
+    final url = Uri.parse('$baseUrl/admin/manage-creative/$profileId/');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'action': action}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error managing creative: $e");
+      return false;
     }
   }
 }

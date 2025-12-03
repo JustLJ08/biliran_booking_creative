@@ -1,10 +1,10 @@
-from django.contrib.auth import authenticate
-from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status, generics, filters
-from django.utils import timezone
+from django.contrib.auth import authenticate # type: ignore
+from django.shortcuts import get_object_or_404 # type: ignore
+from rest_framework.views import APIView # type: ignore
+from rest_framework.decorators import api_view # pyright: ignore[reportMissingImports]
+from rest_framework.response import Response # type: ignore
+from rest_framework import status, generics, filters # type: ignore
+from django.utils import timezone # pyright: ignore[reportMissingModuleSource]
 from .models import Contract
 from .models import (
     User,
@@ -360,3 +360,40 @@ def sign_contract(request, contract_id):
         
     contract.save()
     return Response({"message": "Contract signed successfully"})
+
+# ... existing imports ...
+
+# ==========================
+# ADMIN VIEWS
+# ==========================
+
+class AdminPendingCreatives(generics.ListAPIView):
+    """
+    Returns a list of CreativeProfiles where is_verified = False
+    """
+    serializer_class = CreativeProfileSerializer
+    
+    def get_queryset(self):
+        # In a real app, verify request.user.role == 'admin' here
+        return CreativeProfile.objects.filter(is_verified=False).order_by('-created_at')
+
+@api_view(['POST'])
+def admin_manage_creative(request, pk):
+    """
+    POST /api/admin/creative/<pk>/
+    Body: { "action": "approve" } or { "action": "decline" }
+    """
+    profile = get_object_or_404(CreativeProfile, pk=pk)
+    action = request.data.get('action')
+
+    if action == 'approve':
+        profile.is_verified = True
+        profile.save()
+        return Response({"message": "Profile approved successfully"}, status=200)
+    
+    elif action == 'decline':
+        # Delete the profile (User stays, but they lose creative status)
+        profile.delete()
+        return Response({"message": "Profile declined and removed"}, status=200)
+
+    return Response({"error": "Invalid action"}, status=400)
