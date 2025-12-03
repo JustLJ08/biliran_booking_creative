@@ -1,0 +1,39 @@
+name: creative_booking_system
+description: A new Flutter project.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Default icons
+  cupertino_icons: ^1.0.2
+
+  # Networking
+  http: ^1.2.0
+
+  # Fonts & Styling
+  google_fonts: ^6.1.0
+
+  # Date Formatting (For Booking Screen)
+  intl: ^0.19.0
+
+  # State Management (Optional for future use)
+  flutter_riverpod: ^2.4.9
+  
+  # Local Storage (For future Login/Auth)
+  shared_preferences: ^2.2.2
+  image_picker: ^1.2.1
+  file_picker: ^6.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
