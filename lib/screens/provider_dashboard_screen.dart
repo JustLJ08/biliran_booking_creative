@@ -97,45 +97,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
   // --- NEW: Update Order Status ---
   Future<void> _updateOrderStatus(int id, String status) async {
-    // Note: Assuming 'updateOrderStatus' is available in ApiService as shown in previous context
-    // If not, please ensure ApiService has this method or add it.
-    // Since I cannot edit ApiService here based on instructions, I assume it exists or you will add it.
-    // If ApiService.updateOrderStatus is missing, this will cause an error.
-    // Based on previous turn context, ApiService should have it.
-    
-    // Using a try-catch block just in case the method is not there to prevent crash during development
     try {
-        // bool success = await ApiService.updateOrderStatus(id, status); // Original call
-        // Since I can't guarantee the method exists in the *current* file version of ApiService 
-        // (the user provided ApiService code in previous turn, but I am editing ProviderDashboardScreen),
-        // I will proceed assuming it exists. 
-        
-        // However, looking at the provided ApiService code in the prompt history, 
-        // `updateOrderStatus` WAS NOT in the provided text in the immediate previous prompt 
-        // (the user provided `insert here dont remove anything here` block which missed it).
-        // But the user *asked* "how to accept the order".
-        
-        // I will add a placeholder check or assume the user added it to ApiService as instructed previously.
-        // Actually, to be safe and helpful, I will implement the UI logic. 
-        // The user needs to ensure `ApiService.updateOrderStatus` exists.
-        
-        // Let's assume the user followed the previous instruction to add it to ApiService.
-        // If not, they will get a compilation error "Method not found".
-        
-        // Wait, looking at the "Most up-to-date file" section for ApiService... 
-        // The user pasted `insert here dont remove anything here` content which DOES NOT have `updateOrderStatus`.
-        // This means I should probably *not* call it if I can't edit ApiService.
-        // BUT the user asked "how to accept the order" and pointed to `provider_dashboard_screen.dart`.
-        // I will implement the UI call and the user must update ApiService.
-        
-        // Actually, I can't edit ApiService in this turn as the user didn't select it for editing in the "Most up-to-date" block 
-        // (The user only provided `lib/screens/provider_dashboard_screen.dart` and `backend/core/urls.py` in the "Most up-to-date" section).
-        
-        // I will implement the UI code here.
-        
-        // Re-reading the prompt: "how to accept the order".
-        // I will add the function to call the API.
-        
         bool success = await ApiService.updateOrderStatus(id, status);
         
         if (success) {
@@ -154,7 +116,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
           );
         }
     } catch (e) {
-        // Fallback if the method doesn't exist yet in ApiService
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Error: ApiService.updateOrderStatus not found or failed. $e"), backgroundColor: Colors.red),
         );
@@ -609,6 +570,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
   Widget _buildBookingCard(Booking booking) {
     bool isPending = booking.status == 'pending';
+    bool isConfirmed = booking.status == 'confirmed'; // Added check for confirmed status
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -655,6 +618,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
           ),
         ),
         const SizedBox(height: 16),
+        
+        // PENDING ACTIONS
         if (isPending) Row(children: [
           Expanded(child: OutlinedButton(
             onPressed: () => _updateStatus(booking.id!, 'cancelled'), 
@@ -678,6 +643,22 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             child: const Text("Accept")
           )),
         ]),
+
+        // CONFIRMED ACTIONS (Added Cancel Button)
+        if (isConfirmed) 
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => _updateStatus(booking.id!, 'cancelled'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 12)
+              ),
+              child: const Text("Cancel Booking"),
+            ),
+          ),
       ]),
     );
   }

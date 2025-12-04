@@ -27,6 +27,8 @@ dependencies:
   
   # Local Storage (For future Login/Auth)
   shared_preferences: ^2.2.2
+
+  # File and Image Pickers
   image_picker: ^1.2.1
   file_picker: ^6.1.1
 
@@ -37,3 +39,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo.png

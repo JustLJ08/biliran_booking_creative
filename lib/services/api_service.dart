@@ -290,6 +290,22 @@ class ApiService {
     }
   }
 
+  // --- ADDED: Cancel Booking Method ---
+  static Future<bool> cancelBooking(int bookingId) async {
+    final url = Uri.parse('$baseUrl/bookings/$bookingId/');
+    try {
+      final response = await http.patch(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'status': 'cancelled'}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Cancel Booking Error: $e");
+      return false;
+    }
+  }
+
   // ===========================================================================
   // PROFILE MANAGEMENT
   // ===========================================================================
