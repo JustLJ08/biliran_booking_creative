@@ -9,15 +9,20 @@ from .views import (
     ProductList, ProductDetail, 
     OrderList, OrderDetail, 
     ServicePackageList,
-    # --- NEW IMPORTS FOR RECOMMENDATIONS ---
     save_user_interests, 
-    recommended_creatives
+    recommended_creatives,
+    VerifyEmailOTP, 
+    ResendEmailOTP
 )
 
 urlpatterns = [
     # Auth
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
+
+    # Email Verification
+    path("verifyEmail/", VerifyEmailOTP.as_view(), name="verify-email"),
+    path("resendOtp/", ResendEmailOTP.as_view(), name="resend-otp"),
 
     # Data & Search
     path('industries/', IndustryList.as_view(), name='industry-list'),

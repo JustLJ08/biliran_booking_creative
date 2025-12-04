@@ -1,5 +1,5 @@
 from rest_framework import serializers # type: ignore
-from .models import User, IndustryCategory, SubCategory, CreativeProfile, Booking, ServicePackage, Product, Order
+from .models import User, IndustryCategory, SubCategory, CreativeProfile, Booking, ServicePackage, Product, Order , Contract
 
 # --- NEW: Registration Serializer ---
 class RegisterSerializer(serializers.ModelSerializer):
@@ -7,7 +7,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'email', 'first_name', 'last_name', 'role']
+        fields = ['id', 'username', 'password', 'email', 'first_name', 'last_name', 'role']
+        read_only_fields = ['id']  # SO IMPORTANT: allow user ID in response
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -21,13 +22,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+
 # --- EXISTING SERIALIZERS ---
+
 class UserSerializer(serializers.ModelSerializer):
+    is_email_verified = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_email_verified']
 
-
+    def get_is_email_verified(self, obj):
+        return hasattr(obj, 'email_otp') and obj.email_otp.is_verified
 class IndustryCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = IndustryCategory
@@ -129,12 +135,27 @@ class BookingSerializer(serializers.ModelSerializer):
             'requirements', 'status', 'created_at'
         ]
 
-
-# ... existing imports ...
-from .models import Contract # Make sure to import Contract
-
 class ContractSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contract
         fields = ['id', 'booking', 'body_text', 'is_client_signed', 'is_creative_signed', 'created_at']
+
+# ==============================
+# OTP VERIFICATION SERIALIZERS
+# ==============================
+class VerifyOTPSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    otp = serializers.CharField(max_length=6)
+
+
+class ResendOTPSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+
+
+# ===========================================
+#  USER SERIALIZER WITH VERIFICATION STATUS
+#============================================   
+
+
+
 

@@ -283,8 +283,9 @@ class _HomeScreenState extends State<HomeScreen> {
         index: _selectedIndex,
         children: [
           _buildHomeTab(),          
-          const MyBookingsScreen(), 
-          _buildPlaceholderTab("Profile Coming Soon"), 
+          const MyBookingsScreen(),
+          _buildPlaceholderTab("Inox Coming Soon"),
+          _buildProfileTab(),
         ],
       ),
       bottomNavigationBar: Container(
@@ -295,6 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Icons.calendar_month_rounded), label: 'Bookings'),
+            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_rounded), label: 'Inbox'),
             BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
           ],
           currentIndex: _selectedIndex,
@@ -312,6 +314,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
+//===========================================
+//           Home TAB
+// ==========================================
+  
+  
   Widget _buildHomeTab() {
     return SafeArea(
       child: RefreshIndicator(
@@ -350,6 +358,85 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+
+//=========================================
+//   Profile Tab
+//=========================================
+
+
+  Widget _buildProfileTab() {
+  return SafeArea(
+    child: Column(
+      children: [
+        const SizedBox(height: 32),
+        CircleAvatar(
+          radius: 45,
+          backgroundColor: kPrimaryLight,
+          child: const Icon(Icons.person_rounded, size: 50, color: kPrimaryColor),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          "My Profile",
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: kTextPrimary,
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        ListTile(
+          leading: const Icon(Icons.edit_rounded, color: kPrimaryColor),
+          title: Text("Edit Profile", style: GoogleFonts.plusJakartaSans()),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () {
+            // TODO: connect to profile settings page
+          },
+        ),
+
+        ListTile(
+          leading: const Icon(Icons.favorite_rounded, color: kPrimaryColor),
+          title: Text("Favorites", style: GoogleFonts.plusJakartaSans()),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () {},
+        ),
+
+        ListTile(
+          leading: const Icon(Icons.settings_rounded, color: kPrimaryColor),
+          title: Text("Settings", style: GoogleFonts.plusJakartaSans()),
+          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          onTap: () {},
+        ),
+
+        const Spacer(),
+
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: ElevatedButton(
+            onPressed: _logout,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              "Logout",
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        )
+      ],
+    ),
+  );
+}
+
 
   Widget _buildHeader() {
     return Container(

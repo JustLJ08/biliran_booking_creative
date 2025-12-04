@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import 'interest_selection_screen.dart';
 // FIX: Import the Create Profile Screen
 import 'create_profile_screen.dart'; 
+import 'verify_email_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -24,82 +25,62 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
 
   Future<void> _signup() async {
-    // 1. Validation
-    if (_usernameController.text.trim().isEmpty || 
-        _passwordController.text.trim().isEmpty ||
-        _emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Please fill in all required fields"),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
+  // 1. Validation
+  if (_usernameController.text.trim().isEmpty || 
+      _passwordController.text.trim().isEmpty ||
+      _emailController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text("Please fill in all required fields"),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return;
+  }
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    // 2. Call Register API
-    final success = await ApiService.register(
+  // 2. Register User
+  final success = await ApiService.register(
+    _usernameController.text.trim(),
+    _emailController.text.trim(),
+    _passwordController.text.trim(),
+    _firstNameController.text.trim(),
+    _lastNameController.text.trim(),
+    _selectedRole,
+  );
+
+  if (success && mounted) {
+    // AUTO-LOGIN
+    final loginSuccess = await ApiService.login(
       _usernameController.text.trim(),
-      _emailController.text.trim(),
       _passwordController.text.trim(),
-      _firstNameController.text.trim(),
-      _lastNameController.text.trim(),
-      _selectedRole,
     );
 
-    if (success && mounted) {
-      // --- AUTO-LOGIN ---
-      final loginSuccess = await ApiService.login(
-        _usernameController.text.trim(), 
-        _passwordController.text.trim()
+    setState(() => _isLoading = false);
+
+    if (loginSuccess && mounted) {
+      Navigator.pushReplacement(
+        context,
+          MaterialPageRoute(builder: (context) => VerifyEmailScreen(role: _selectedRole)),  
       );
-
-      setState(() => _isLoading = false);
-
-      if (loginSuccess && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Account Created! Setting up profile..."),
-            backgroundColor: Colors.green.shade600,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-
-        // --- FIX: NAVIGATION LOGIC ---
-        if (_selectedRole == 'creative') {
-          // 1. If Creative -> Go to Profile Creation Screen
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const CreateProfileScreen()),
-          );
-        } else {
-          // 2. If Client -> Go to Interest Selection (Client Onboarding)
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const InterestSelectionScreen(isEditMode: false)),
-          );
-        }
-        // -----------------------------
-
-      } else {
-        // Fallback: If auto-login fails, go to Login Screen manually
-        Navigator.pop(context); 
-      }
-
-    } else if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Signup Failed. Check your email format or username."),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    } else {
+      Navigator.pop(context); // fallback to login screen
     }
+
+  } else if (mounted) {
+    setState(() => _isLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text("Signup Failed. Check your email format or username."),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
