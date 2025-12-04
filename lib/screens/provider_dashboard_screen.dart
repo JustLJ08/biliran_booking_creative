@@ -187,6 +187,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             BottomNavigationBarItem(icon: Icon(Icons.calendar_month_rounded), label: 'Bookings'),
             BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_rounded), label: 'Orders'),
             BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_rounded), label: 'Inbox'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+
           ],
           currentIndex: _selectedIndex,
           selectedItemColor: const Color(0xFF4F46E5),

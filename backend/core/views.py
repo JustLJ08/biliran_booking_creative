@@ -5,9 +5,10 @@ from rest_framework.decorators import api_view # pyright: ignore[reportMissingIm
 from rest_framework.response import Response # type: ignore
 from rest_framework import status, generics, filters # type: ignore
 from django.utils import timezone # pyright: ignore[reportMissingModuleSource]
-from .models import ChatMessage, Contract
+from .models import Contract
 from .models import (
     User,
+    Contract,
     IndustryCategory,
     SubCategory,
     CreativeProfile,
@@ -15,6 +16,7 @@ from .models import (
     Product,
     Order,
     ServicePackage,
+    EmailOTP,
     UserInterest, # Ensure this is imported
 )
 from .serializers import (
@@ -37,6 +39,18 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
 
+    def perform_create(self, serializer):
+        # Save new user
+        user = serializer.save()
+
+        # Generate or update OTP
+        otp_obj, _ = EmailOTP.objects.get_or_create(user=user)
+        code = otp_obj.generate_otp()
+
+        # Send OTP to email
+        send_otp_email(user.email, code)
+
+
 
 class LoginView(APIView):
     def post(self, request):
@@ -53,6 +67,48 @@ class LoginView(APIView):
                 }
             )
         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+
+# ==========================
+# EMAIL OTP VERIFICATION
+# ==========================
+
+class VerifyEmailOTP(APIView):
+    def post(self, request):
+        otp = request.data.get("otp")
+        user_id = request.data.get("user_id")
+
+        try:
+            otp_obj = EmailOTP.objects.get(user_id=user_id)
+        except EmailOTP.DoesNotExist:
+            return Response({"error": "OTP not found"}, status=404)
+
+        if otp_obj.is_verified:
+            return Response({"message": "Email already verified"}, status=200)
+
+        if otp_obj.is_expired():
+            return Response({"error": "OTP expired"}, status=400)
+
+        if str(otp_obj.otp_code) == str(otp):
+            otp_obj.is_verified = True
+            otp_obj.save()
+            return Response({"message": "Email verified"}, status=200)
+
+        return Response({"error": "Invalid OTP"}, status=400)
+
+
+class ResendEmailOTP(APIView):
+    def post(self, request):
+        user_id = request.data.get("user_id")
+
+        try:
+            otp_obj = EmailOTP.objects.get(user_id=user_id)
+        except EmailOTP.DoesNotExist:
+            return Response({"error": "User OTP not found"}, status=404)
+
+        otp_obj.generate_otp()
+        send_otp_email(otp_obj.user.email, otp_obj.otp_code)
+        return Response({"message": "OTP resent"}, status=200)
+
 
 
 # ==========================

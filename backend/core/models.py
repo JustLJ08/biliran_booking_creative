@@ -1,6 +1,8 @@
 from django.db import models # type: ignore
-from django.contrib.auth.models import AbstractUser # type: ignore
+from django.contrib.auth.models import AbstractUser, User # type: ignore
+from datetime import datetime, timedelta
 
+import random
 # 1. Custom User Model
 class User(AbstractUser):
     ROLE_CHOICES = (
@@ -13,6 +15,23 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+    
+# 1.5 Email OTP for Verification
+class EmailOTP(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="email_otp")
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+
+    def generate_otp(self):
+        self.otp_code = str(random.randint(100000, 999999))
+        self.created_at = datetime.now()
+        self.save()
+        return self.otp_code
+
+    def is_expired(self):
+        return self.created_at < datetime.now() - timedelta(minutes=10)
+
 
 # 2. Industry Category
 class IndustryCategory(models.Model):
@@ -145,7 +164,6 @@ class UserInterest(models.Model):
         return f"{self.user.username} -> {self.sub_category.name}"
     
 
-# ... existing models ...
 
 # 10. Contract Agreement
 class Contract(models.Model):
