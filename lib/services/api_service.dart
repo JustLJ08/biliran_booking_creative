@@ -290,22 +290,6 @@ class ApiService {
     }
   }
 
-  // --- ADDED: Cancel Booking Method ---
-  static Future<bool> cancelBooking(int bookingId) async {
-    final url = Uri.parse('$baseUrl/bookings/$bookingId/');
-    try {
-      final response = await http.patch(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'status': 'cancelled'}),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      print("Cancel Booking Error: $e");
-      return false;
-    }
-  }
-
   // ===========================================================================
   // PROFILE MANAGEMENT
   // ===========================================================================
@@ -550,4 +534,40 @@ class ApiService {
       return false;
     }
   }
+
+  // ===========================================================================
+  // OTP VERIFICATION
+  // ===========================================================================
+
+static Future<bool> verifyOTP(String otp) async {
+  final url = Uri.parse('http://127.0.0.1:8000/api/verifyEmail/');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'otp': otp}),
+    );
+    return response.statusCode == 200;
+  } catch (e) {
+    print("OTP verify error: $e");
+    return false;
+  }
+}
+
+static Future<bool> resendOTP() async {
+  final url = Uri.parse('http://127.0.0.1:8000/api/resendOtp/');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({}),
+    );
+    return response.statusCode == 200;
+  } catch (e) {
+    print("Resend OTP error: $e");
+    return false;
+  }
+}
+
+
 }
