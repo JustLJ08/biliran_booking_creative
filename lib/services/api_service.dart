@@ -21,6 +21,48 @@ class ApiService {
     }
   }
 
+
+  // ===========================================================================
+  // OTP VERIFICATION
+  // ===========================================================================
+
+static Future<bool> verifyOTP({required int userId, required String otp}) async {
+  try {
+    final url = Uri.parse('$baseUrl/verify-email/');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        "user_id": userId,
+        "otp": otp,
+      }),
+    );
+
+    return response.statusCode == 200;
+  } catch (e) {
+    print("Verify OTP error: $e");
+    return false;
+  }
+}
+
+static Future<bool> resendOTP({required int userId}) async {
+  try {
+    final url = Uri.parse('$baseUrl/resend-otp/');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        "user_id": userId,
+      }),
+    );
+
+    return response.statusCode == 200;
+  } catch (e) {
+    print("Resend OTP error: $e");
+    return false;
+  }
+}
+
   // ===========================================================================
   // AUTHENTICATION
   // ===========================================================================
@@ -48,40 +90,43 @@ class ApiService {
     }
   }
 
-  static Future<bool> register(
-    String username,
-    String email,
-    String password,
-    String firstName,
-    String lastName,
-    String role,
-  ) async {
-    final url = Uri.parse('$baseUrl/register/');
-    try {
-      final response = await http.post(
-        url,
-        body: {
-          'username': username,
-          'email': email,
-          'password': password,
-          'first_name': firstName,
-          'last_name': lastName,
-          'role': role,
-        },
-      );
-      
-      if (response.statusCode != 201) {
-        print("Register Failed: ${response.statusCode}");
-        print("Server Response: ${response.body}"); 
-      }
+  // ApiService.register
+static Future<Map<String, dynamic>?> register(
+  String username,
+  String email,
+  String password,
+  String firstName,
+  String lastName,
+  String role,
+) async {
+  final url = Uri.parse('$baseUrl/register/');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'username': username,
+        'email': email,
+        'password': password,
+        'first_name': firstName,
+        'last_name': lastName,
+        'role': role,
+      }),
+    );
 
-      return response.statusCode == 201;
-    } catch (e) {
-      print("Register Error: $e");
-      return false;
+    if (response.statusCode == 201) {
+      return json.decode(response.body); // 👈 return user JSON
+    } else {
+      print("Register Failed: ${response.statusCode}");
+      print("Server Response: ${response.body}");
+      return null;
     }
+  } catch (e) {
+    print("Register Error: $e");
+    return null;
   }
-
+}
+  
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -535,39 +580,60 @@ class ApiService {
     }
   }
 
-  // ===========================================================================
-  // OTP VERIFICATION
-  // ===========================================================================
+// ==============================
+// PREFERENCES
+// ==============================
 
-static Future<bool> verifyOTP(String otp) async {
-  final url = Uri.parse('http://127.0.0.1:8000/api/verifyEmail/');
+static Future<bool> savePreferences({
+  required List<String> categories,
+  required Map<String, List<String>> subCategories,
+  required int budget,
+  required String location,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getInt('userId');
+  if (userId == null) return false;
+
+  final url = Uri.parse('$baseUrl/preferences/save/');
+
   try {
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'otp': otp}),
+      body: json.encode({
+        "user_id": userId,
+        "categories": categories,
+        "subCategories": subCategories,
+        "budget": budget,
+        "location": location,
+      }),
     );
+
+    print("Save Pref Response: ${response.statusCode} - ${response.body}");
+
     return response.statusCode == 200;
   } catch (e) {
-    print("OTP verify error: $e");
+    print("Save Preferences Error: $e");
     return false;
   }
 }
 
-static Future<bool> resendOTP() async {
-  final url = Uri.parse('http://127.0.0.1:8000/api/resendOtp/');
+static Future<bool> checkPreferences() async {
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getInt('userId');
+  if (userId == null) return false;
+
+  final url = Uri.parse('$baseUrl/preferences/check/?user_id=$userId');
+  
   try {
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({}),
-    );
-    return response.statusCode == 200;
-  } catch (e) {
-    print("Resend OTP error: $e");
-    return false;
-  }
-}
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['has_preferences'] ?? false;
+    }
+  } catch (e) {}
 
+  return false;
+}
 
 }

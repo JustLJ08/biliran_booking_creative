@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view # pyright: ignore[reportMissingIm
 from rest_framework.response import Response # type: ignore
 from rest_framework import status, generics, filters # type: ignore
 from django.utils import timezone # pyright: ignore[reportMissingModuleSource]
-from .models import Contract
+from .utils import send_otp_email
 from .models import (
     User,
     Contract,

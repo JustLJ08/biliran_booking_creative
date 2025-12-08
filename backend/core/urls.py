@@ -21,8 +21,8 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
 
     # Email Verification
-    path("verifyEmail/", VerifyEmailOTP.as_view(), name="verify-email"),
-    path("resendOtp/", ResendEmailOTP.as_view(), name="resend-otp"),
+    path("verify-email/", VerifyEmailOTP.as_view(), name="verify-email"),
+    path("resend-otp/", ResendEmailOTP.as_view(), name="resend-otp"),
 
     # Data & Search
     path('industries/', IndustryList.as_view(), name='industry-list'),

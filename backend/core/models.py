@@ -1,6 +1,7 @@
 from django.db import models # type: ignore
 from django.contrib.auth.models import AbstractUser, User # type: ignore
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 import random
 # 1. Custom User Model
@@ -25,12 +26,12 @@ class EmailOTP(models.Model):
 
     def generate_otp(self):
         self.otp_code = str(random.randint(100000, 999999))
-        self.created_at = datetime.now()
+        self.created_at = timezone.now()
         self.save()
         return self.otp_code
 
     def is_expired(self):
-        return self.created_at < datetime.now() - timedelta(minutes=10)
+        return self.created_at < timezone.now() - timedelta(minutes=10)
 
 
 # 2. Industry Category

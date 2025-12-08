@@ -31,28 +31,22 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 
   // Helper to format date nicely
-  String _formatDateTime(String dateStr, String timeStr) {
-    try {
-      // Clean up inputs just in case
-      final date = dateStr.trim();
-      final time = timeStr.trim();
-      
-      // Attempt to combine. Note: precise parsing depends on your API format.
-      // Assuming ISO format YYYY-MM-DD for date and HH:mm:ss or HH:mm for time
-      DateTime dateTime;
-      try {
-         dateTime = DateTime.parse("$date $time");
-      } catch (_) {
-         // Fallback if direct concat fails (e.g. if time is "10:00 AM")
-         // This is a basic fallback, ideally use specific DateFormat parsing
-         return "$date • $time";
-      }
-
-      return DateFormat('MMM d, y • h:mm a').format(dateTime);
-    } catch (e) {
-      return "$dateStr • $timeStr";
-    }
+  String _formatDateTime(String? dateStr, String? timeStr) {
+  if (dateStr == null || timeStr == null || dateStr.isEmpty || timeStr.isEmpty) {
+    return "Date not set";
   }
+
+  try {
+    final date = dateStr.trim();
+    final time = timeStr.trim();
+
+    DateTime dateTime = DateTime.parse("$date $time");
+    return DateFormat('MMM d, y • h:mm a').format(dateTime);
+  } catch (_) {
+    return "$dateStr • $timeStr";
+  }
+}
+
 
   // Helper for status colors
   Color _getStatusColor(String status) {
@@ -138,7 +132,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 
       try {
         // Call API
-        await ApiService.cancelBooking(bookingId); // Ensure this method exists in your ApiService
+        await ApiService.updateBookingStatus(bookingId, "cancelled"); // Ensure this method exists in your ApiService
         
         if (!mounted) return;
         Navigator.pop(context); // Dismiss loading

@@ -6,7 +6,13 @@ import 'interest_selection_screen.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final String role;
-  const VerifyEmailScreen({super.key, required this.role});
+  final int userId;
+
+   const VerifyEmailScreen({
+    super.key,
+    required this.role,
+    required this.userId,
+  });
 
   @override
   State<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
@@ -21,7 +27,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     if (_otpController.text.trim().isEmpty) return;
 
     setState(() => _isLoading = true);
-    final success = await ApiService.verifyOTP(_otpController.text.trim());
+
+    final success = await ApiService.verifyOTP(
+      userId: widget.userId,
+      otp: _otpController.text.trim(),
+    );
 
     setState(() => _isLoading = false);
 
@@ -33,16 +43,17 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         ),
       );
 
-      // Navigate based on role
+      // ROLE BASED REDIRECTION 🔥
       if (widget.role == "creative") {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const CreateProfileScreen()),
         );
-      } else {
+      } 
+      else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const InterestSelectionScreen(isEditMode: false)),
+          MaterialPageRoute(builder: (_) => const InterestSelectionScreen()),
         );
       }
 
@@ -59,13 +70,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       ),
     );
 
-    bool sent = await ApiService.resendOTP();
+    final sent = await ApiService.resendOTP(userId: widget.userId);
 
-    if (sent) {
-      setState(() => _message = "New OTP sent to your email.");
-    } else {
-      setState(() => _message = "Failed to resend OTP.");
-    }
+    setState(() {
+      _message = sent
+          ? "New OTP sent to your email."
+          : "Failed to resend OTP.";
+    });
   }
 
   @override
