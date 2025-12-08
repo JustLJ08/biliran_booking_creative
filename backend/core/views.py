@@ -18,7 +18,8 @@ from .models import (
     ServicePackage,
     EmailOTP,
     UserInterest,
-    ChatMessage # Ensure this is imported
+    ChatMessage,
+    UserPreferences# Ensure this is imported
 )
 from .serializers import (
     ContractSerializer,
@@ -109,6 +110,62 @@ class ResendEmailOTP(APIView):
         otp_obj.generate_otp()
         send_otp_email(otp_obj.user.email, otp_obj.otp_code)
         return Response({"message": "OTP resent"}, status=200)
+
+# ==========================
+# USER PREFERENCES VIEWS
+# ==========================
+
+@api_view(['GET'])
+def check_preferences(request):
+    """
+    Returns JSON: { "has_preferences": true/false }
+    """
+    user_id = request.query_params.get('user_id')
+    
+    if not user_id:
+        return Response({"error": "User ID required"}, status=400)
+
+    exists = UserPreferences.objects.filter(user_id=user_id).exists()
+    return Response({"has_preferences": exists}, status=200)
+
+
+@api_view(['POST'])
+def save_preferences(request):
+    try:
+        user_id = request.data.get("user_id")
+        categories = request.data.get("categories", [])
+        sub_categories_map = request.data.get("subCategories", {})
+        budget = request.data.get("budget")
+        location = request.data.get("location")
+
+        user = get_object_or_404(User, id=user_id)
+
+        # Save or update UserPreferences
+        pref, _ = UserPreferences.objects.update_or_create(
+            user=user,
+            defaults={
+                "categories": ", ".join(categories),
+                "max_budget": budget,
+                "location": location
+            }
+        )
+
+        # Clear previous subcategory interests
+        UserInterest.objects.filter(user=user).delete()
+
+        # Save new selected subcategories
+        for category in sub_categories_map.values():
+            for sub_name in category:
+                try:
+                    sub_cat = SubCategory.objects.get(name=sub_name)
+                    UserInterest.objects.create(user=user, sub_category=sub_cat)
+                except SubCategory.DoesNotExist:
+                    pass  # Ignore unmatched items
+
+        return Response({"success": True, "message": "Preferences saved successfully!"})
+
+    except Exception as e:
+        return Response({"success": False, "error": str(e)}, status=400)
 
 
 

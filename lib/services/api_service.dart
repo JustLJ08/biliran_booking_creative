@@ -126,6 +126,13 @@ static Future<Map<String, dynamic>?> register(
     return null;
   }
 }
+
+static Future<bool> isAdmin() async {
+  final prefs = await SharedPreferences.getInstance();
+  final role = prefs.getString('role');
+  return role == 'Platform Admin';
+}
+
   
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();

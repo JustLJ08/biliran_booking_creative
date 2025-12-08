@@ -12,7 +12,9 @@ from .views import (
     save_user_interests, 
     recommended_creatives,
     VerifyEmailOTP, 
-    ResendEmailOTP
+    ResendEmailOTP,
+    check_preferences,
+    save_preferences,
 )
 
 urlpatterns = [
@@ -23,6 +25,10 @@ urlpatterns = [
     # Email Verification
     path("verify-email/", VerifyEmailOTP.as_view(), name="verify-email"),
     path("resend-otp/", ResendEmailOTP.as_view(), name="resend-otp"),
+
+        # User Preferences
+    path('preferences/check/', check_preferences),
+    path('preferences/save/', save_preferences),
 
     # Data & Search
     path('industries/', IndustryList.as_view(), name='industry-list'),
