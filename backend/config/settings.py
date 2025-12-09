@@ -4,6 +4,7 @@ Django settings for creative_booking project.
 
 from pathlib import Path
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,6 +44,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -68,17 +70,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ===============================================
 # POSTGRES - CONNECT TO NEON DATABASE
 # ===============================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'creative_booking',    
-        'USER': 'neondb_owner',         
-        'PASSWORD': 'npg_kAJbVd9Rn3PH', # UPDATED: Matches the reset command above
-        'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
-        'PORT': '5432',             # Keep as 2524 (Correct Port)
-    }
-}
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.postgresql',
+#        'NAME': 'creative_booking',    
+#        'USER': 'neondb_owner',         
+#        'PASSWORD': 'npg_kAJbVd9Rn3PH', # UPDATED: Matches the reset command above
+#        'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
+#        'PORT': '5432',             # Keep as 2524 (Correct Port)
+#    }
+#}
 
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get("psql 'postgresql://neondb_owner:npg_kAJbVd9Rn3PH@ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech/creative_booking?sslmode=require&channel_binding=require'"),
+        conn_max_age=600,
+        ssl_require=True
+    )
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -95,7 +104,9 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
