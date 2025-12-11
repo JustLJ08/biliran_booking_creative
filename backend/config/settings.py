@@ -80,24 +80,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ===============================================
 # POSTGRES - CONNECT TO NEON DATABASE
 # ===============================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'creative_booking',    
-        'USER': 'neondb_owner',         
-        'PASSWORD': 'npg_kAJbVd9Rn3PH', # UPDATED: Matches the reset command above
-        'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
-        'PORT': '5432',             # Keep as 2524 (Correct Port)
-    }
-}
-
 #DATABASES = {
-#    'default': dj_database_url.config(
-#        default=os.environ.get("DATABASE_URL"),
-#        conn_max_age=600,
-#        ssl_require=True
-#    )
+#    'default': {
+#        'ENGINE': 'django.db.backends.postgresql',
+#        'NAME': 'creative_booking',    
+#        'USER': 'neondb_owner',         
+#        'PASSWORD': 'npg_kAJbVd9Rn3PH', # UPDATED: Matches the reset command above
+#        'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
+#        'PORT': '5432',             # Keep as 2524 (Correct Port)
+#    }
 #}
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

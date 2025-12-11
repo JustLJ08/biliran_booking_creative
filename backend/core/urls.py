@@ -19,7 +19,8 @@ from .views import (
     # Contract Views
     get_booking_contract, sign_contract,
     # Chat ViewSet
-    ChatMessageViewSet 
+    ChatMessageViewSet,
+    check_creative_verified
 )
 
 # 1. Create a Router
@@ -41,9 +42,12 @@ urlpatterns = [
     path("verify-email/", VerifyEmailOTP.as_view(), name="verify-email"),
     path("resend-otp/", ResendEmailOTP.as_view(), name="resend-otp"),
 
-        # User Preferences
+    # User Preferences
     path('preferences/check/', check_preferences),
     path('preferences/save/', save_preferences),
+    
+    # Creative Verification Check
+    path("creative/is-verified/", check_creative_verified),
 
     # Data & Search
     path('industries/', IndustryList.as_view(), name='industry-list'),
@@ -80,4 +84,6 @@ urlpatterns = [
     # Admin
     path('admin/pending-creatives/', AdminPendingCreatives.as_view(), name='admin-pending-list'),
     path('admin/manage-creative/<int:pk>/', admin_manage_creative, name='admin-manage-creative'),
+
+    
 ]

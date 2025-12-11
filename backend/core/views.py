@@ -1,40 +1,24 @@
-from django.contrib.auth import authenticate # type: ignore
-from django.shortcuts import get_object_or_404 # type: ignore
-from rest_framework.views import APIView # type: ignore
-from rest_framework.decorators import api_view # pyright: ignore[reportMissingImports]
-from rest_framework.response import Response # type: ignore
+from django.contrib.auth import authenticate
+from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 from rest_framework import status, generics, filters, viewsets
 from django.utils import timezone
 
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
+
 from .utils import send_otp_email 
-from .models import ChatMessage, Contract
 from .models import (
-    User,
-    Contract,
-    IndustryCategory,
-    SubCategory,
-    CreativeProfile,
-    Booking,
-    Product,
-    Order,
-    ServicePackage,
-    EmailOTP,
-    UserInterest,
-    ChatMessage,
-    UserPreferences,# Ensure this is imported
-    UserInterest, # Ensure this is imported
+    User, Contract, IndustryCategory, SubCategory, CreativeProfile,
+    Booking, Product, Order, ServicePackage, EmailOTP,
+    UserInterest, UserPreferences, ChatMessage
 )
 from .serializers import (
-    ContractSerializer,
-    RegisterSerializer,
-    IndustryCategorySerializer,
-    SubCategorySerializer,
-    CreativeProfileSerializer,
-    BookingSerializer,
-    ProductSerializer,
-    OrderSerializer,
-    ServicePackageSerializer,
-    ChatMessageSerializer,
+    ContractSerializer, RegisterSerializer, IndustryCategorySerializer,
+    SubCategorySerializer, CreativeProfileSerializer, BookingSerializer,
+    ProductSerializer, OrderSerializer, ServicePackageSerializer,
+    ChatMessageSerializer
 )
 
 # ==========================
@@ -46,32 +30,47 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 
     def perform_create(self, serializer):
-        # Save new user
         user = serializer.save()
-
-        # Generate or update OTP
         otp_obj, _ = EmailOTP.objects.get_or_create(user=user)
         code = otp_obj.generate_otp()
-
-        # Send OTP to email
         send_otp_email(user.email, code)
 
 
+# ✅ FIXED LOGIN VIEW (FINAL WORKING VERSION)
 class LoginView(APIView):
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
     def post(self, request):
+
+        print("LOGIN DATA RECEIVED:", request.data)  # DEBUG
+
         username = request.data.get("username")
         password = request.data.get("password")
-        user = authenticate(username=username, password=password)
-        if user:
+
+        if not username or not password:
             return Response(
-                {
-                    "id": user.id,
-                    "username": user.username,
-                    "role": user.role,
-                    "token": "dummy-token-for-now",
-                }
+                {"error": "Username and password are required"},
+                status=status.HTTP_400_BAD_REQUEST
             )
-        return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(username=username, password=password)
+
+        if user is None:
+            return Response(
+                {"error": "Invalid credentials"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(
+            {
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "token": "dummy-token-for-now",  # add JWT later
+            },
+            status=200
+        )
+
 
 # ==========================
 # EMAIL OTP VERIFICATION
@@ -104,7 +103,6 @@ class VerifyEmailOTP(APIView):
 class ResendEmailOTP(APIView):
     def post(self, request):
         user_id = request.data.get("user_id")
-
         try:
             otp_obj = EmailOTP.objects.get(user_id=user_id)
         except EmailOTP.DoesNotExist:
@@ -114,15 +112,13 @@ class ResendEmailOTP(APIView):
         send_otp_email(otp_obj.user.email, otp_obj.otp_code)
         return Response({"message": "OTP resent"}, status=200)
 
+
 # ==========================
 # USER PREFERENCES VIEWS
 # ==========================
 
 @api_view(['GET'])
 def check_preferences(request):
-    """
-    Returns JSON: { "has_preferences": true/false }
-    """
     user_id = request.query_params.get('user_id')
     
     if not user_id:
@@ -143,7 +139,6 @@ def save_preferences(request):
 
         user = get_object_or_404(User, id=user_id)
 
-        # Save or update UserPreferences
         pref, _ = UserPreferences.objects.update_or_create(
             user=user,
             defaults={
@@ -153,17 +148,15 @@ def save_preferences(request):
             }
         )
 
-        # Clear previous subcategory interests
         UserInterest.objects.filter(user=user).delete()
 
-        # Save new selected subcategories
         for category in sub_categories_map.values():
             for sub_name in category:
                 try:
                     sub_cat = SubCategory.objects.get(name=sub_name)
                     UserInterest.objects.create(user=user, sub_category=sub_cat)
                 except SubCategory.DoesNotExist:
-                    pass  # Ignore unmatched items
+                    pass
 
         return Response({"success": True, "message": "Preferences saved successfully!"})
 
@@ -215,6 +208,28 @@ class CreativeList(generics.ListAPIView):
 
 
 # ==========================
+# CHECK IF CREATIVE IS VERIFIED
+# ==========================
+
+@api_view(['GET'])
+def check_creative_verified(request):
+    user_id = request.query_params.get("user_id")
+
+    try:
+        profile = CreativeProfile.objects.get(user_id=user_id)
+        return Response({
+            "has_profile": True,
+            "is_verified": profile.is_verified
+        }, status=200)
+
+    except CreativeProfile.DoesNotExist:
+        return Response({
+            "has_profile": False,
+            "is_verified": False
+        }, status=200)
+
+
+# ==========================
 # BOOKING VIEWS
 # ==========================
 
@@ -229,7 +244,7 @@ class BookingList(generics.ListAPIView):
     search_fields = [
         "creative__user__username",
         "creative__user__first_name",
-        "creative__user__last_name",
+        "creative.__user__last_name",
         "creative__sub_category__name",
         "creative__sub_category__industry__name",
     ]
@@ -257,8 +272,6 @@ class BookingDetail(generics.RetrieveUpdateDestroyAPIView):
 # PRODUCT & ORDER VIEWS
 # ==========================
 
-from rest_framework.parsers import MultiPartParser, FormParser
-
 class ProductList(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
     parser_classes = (MultiPartParser, FormParser)
@@ -276,6 +289,7 @@ class ProductList(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save()
+
 
 class ProductDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.all()
@@ -307,6 +321,7 @@ class OrderList(generics.ListCreateAPIView):
         total = product.price * quantity
         serializer.save(total_price=total)
 
+
 class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
@@ -328,8 +343,6 @@ class ServicePackageList(generics.ListCreateAPIView):
 # ==========================
 # PROFILE VIEWS
 # ==========================
-
-from rest_framework.parsers import MultiPartParser, FormParser
 
 class CreateCreativeProfile(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -361,7 +374,7 @@ class CreativeProfileDetail(generics.RetrieveAPIView):
 
 
 # =========================================================
-#  RECOMMENDATIONS & INTERESTS
+#  RECOMMENDATIONS
 # =========================================================
 
 @api_view(['POST'])
@@ -373,10 +386,8 @@ def save_user_interests(request):
         return Response({"error": "User ID required"}, status=400)
 
     try:
-        # 1. Clear old interests
         UserInterest.objects.filter(user_id=user_id).delete()
 
-        # 2. Add new interests
         for sub_id in subcategory_ids:
             if SubCategory.objects.filter(id=sub_id).exists():
                 UserInterest.objects.create(user_id=user_id, sub_category_id=sub_id)
@@ -393,18 +404,15 @@ def recommended_creatives(request):
     if not user_id:
         return Response([], status=200)
 
-    # 1. Get IDs of subcategories the user likes
     interested_sub_ids = UserInterest.objects.filter(user_id=user_id).values_list('sub_category_id', flat=True)
 
     if not interested_sub_ids:
         return Response([], status=200)
 
-    # 2. Find Creatives in those categories (excluding self)
     creatives = CreativeProfile.objects.filter(sub_category_id__in=interested_sub_ids).exclude(user_id=user_id)
-
-    # 3. Serialize and return
     serializer = CreativeProfileSerializer(creatives, many=True, context={'request': request})
     return Response(serializer.data, status=200)
+
 
 # ==========================
 # CONTRACT VIEWS
@@ -440,7 +448,7 @@ The Client agrees to pay the rate of ${price} per hour/day.
 
 3. CANCELLATION
 Cancellations made less than 24 hours before the booking time may incur a fee.
-        """
+"""
         contract.save()
 
     serializer = ContractSerializer(contract)
@@ -454,7 +462,7 @@ def sign_contract(request, contract_id):
     except Contract.DoesNotExist:
         return Response({"error": "Contract not found"}, status=404)
 
-    role = request.data.get('role') # 'client' or 'creative'
+    role = request.data.get('role')
     
     if role == 'client':
         contract.is_client_signed = True
@@ -477,6 +485,7 @@ class AdminPendingCreatives(generics.ListAPIView):
     def get_queryset(self):
         return CreativeProfile.objects.filter(is_verified=False).order_by('-created_at')
 
+
 @api_view(['POST'])
 def admin_manage_creative(request, pk):
     profile = get_object_or_404(CreativeProfile, pk=pk)
@@ -498,14 +507,11 @@ def admin_manage_creative(request, pk):
 # CHAT / MESSAGING VIEWSET
 # ==========================
 
-# In backend/core/views.py
-
 class ChatMessageViewSet(viewsets.ModelViewSet):
     queryset = ChatMessage.objects.all()
     serializer_class = ChatMessageSerializer
 
     def get_queryset(self):
-        # Filter messages by the booking ID found in the URL or Query Params
         queryset = super().get_queryset()
         booking_id = self.kwargs.get('booking_id') or self.request.query_params.get('booking_id')
         
@@ -514,11 +520,27 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        # 1. Get the booking ID from the URL (e.g., /bookings/4/messages/)
         booking_id = self.kwargs.get('booking_id')
 
-        # 2. Inject the booking_id into the save method so the database knows which booking this belongs to
         if booking_id:
             serializer.save(booking_id=booking_id)
         else:
             serializer.save()
+
+
+class AdminBookingList(generics.ListAPIView):
+    queryset = Booking.objects.all().order_by('-created_at')
+    serializer_class = BookingSerializer
+
+
+class AdminUpdateBooking(APIView):
+    def patch(self, request, pk):
+        booking = get_object_or_404(Booking, id=pk)
+        status = request.data.get("status")
+        if status not in ['pending','confirmed','completed','cancelled']:
+            return Response({"error": "Invalid status"}, status=400)
+
+        booking.status = status
+        booking.save()
+        return Response({"message":"Status updated"}, status=200)
+
