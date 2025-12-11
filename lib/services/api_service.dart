@@ -17,13 +17,13 @@ class ApiService {
   static String get baseUrl {
     if (isProduction) {
       // Running a built APK / Release Mode
-      return 'https://biliran-booking-creative.onrender.com';
+      return 'https://biliran-booking-creative.onrender.com/api';
     } else if (kIsWeb) {
       // Running in the browser
       return 'http://127.0.0.1:8000/api';
     } else {
       // Running in Android Emulator Debug Mode
-      return 'https://biliran-booking-creative.onrender.com'; 
+      return 'https://biliran-booking-creative.onrender.com/api'; 
     }
   }
 
@@ -740,4 +740,30 @@ static Future<bool> createCreativeProfile(
 
     return false;
   }
+
+  // ==============================
+  // CREATIVE VERIFICATION CHECK
+  // ==============================
+
+  static Future<Map<String, dynamic>> checkCreativeVerified() async {
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getInt('userId');
+
+  if (userId == null) return {"has_profile": false, "is_verified": false};
+
+  final url = Uri.parse('$baseUrl/creative/is-verified/?user_id=$userId');
+
+  try {
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+  } catch (e) {
+    print("Check creative verified error: $e");
+  }
+
+  return {"has_profile": false, "is_verified": false};
+}
+
 }

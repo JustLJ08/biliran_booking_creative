@@ -10,6 +10,7 @@ import '../provider/provider_dashboard_screen.dart';
 import '../provider/create_profile_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 import 'preference_screen.dart';
+import '../provider/verification_pending_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,7 +29,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Color get _themeColor => const Color(0xFF4F46E5);
 
   Future<void> _login() async {
-    if (_usernameController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+    if (_usernameController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("Please enter your username and password"),
@@ -53,43 +56,87 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success) {
       final prefs = await SharedPreferences.getInstance();
-      final role = prefs.getString('role');
-      
+      String? role = prefs.getString('role');
+
       if (role == null) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text("No role assigned to this account."),
-      backgroundColor: Colors.red.shade400,
-    ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("No role assigned to this account."),
+            backgroundColor: Colors.red.shade400,
+          ),
+        );
+        return;
+      }
+
+      // 🔥 Normalize Role
+      final normalizedRole = role.trim().toLowerCase();
+      print("DEBUG ROLE FROM PREFS: '$role' → normalized: '$normalizedRole'");
+
+      // ===========================================
+      // 🔥 ADMIN REDIRECTION (FIXED)
+      // ===========================================
+      if (normalizedRole.contains("admin")) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
+        return;
+      }
+
+      // ===========================================
+// CREATIVE / PROVIDER (VERIFIED REQUIRED)
+// ===========================================
+if (normalizedRole == 'creative' ||
+    normalizedRole == 'creative professional') {
+
+  final verification = await ApiService.checkCreativeVerified();
+
+  bool hasProfile = verification["has_profile"] ?? false;
+  bool isVerified = verification["is_verified"] ?? false;
+
+  print("CREATIVE PROFILE: $verification");
+
+  if (!hasProfile) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const CreateProfileScreen()),
+    );
+    return;
+  }
+
+  if (!isVerified) {
+    // Show verification pending screen instead of blocking login silently
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const VerificationPendingScreen()),
+    );
+    return;
+  }
+
+  // VERIFIED → go to dashboard
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => const ProviderDashboardScreen()),
   );
   return;
 }
-      // Onboarding and Redirection Logic
-      if (role.toLowerCase().contains("admin")) {
-  Navigator.pushReplacement(
-      context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
-}
-      else if (role == 'creative' || role == 'Creative Professional') {
-        bool hasProfile = await ApiService.hasCreativeProfile();
-        
-        if (hasProfile) {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => const ProviderDashboardScreen()));
-        } else {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => const CreateProfileScreen()));
-        }
-      }
-      else {
-        bool hasPrefs = await ApiService.checkPreferences();
 
-        if (hasPrefs) {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => const HomeScreen()));
-        } else {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => const PreferenceScreen()));
-        }
+
+      // ===========================================
+      // 🌐 CLIENT
+      // ===========================================
+      bool hasPrefs = await ApiService.checkPreferences();
+
+      if (hasPrefs) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PreferenceScreen()),
+        );
       }
     } 
     else {
@@ -199,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 16),
 
-                    // PASSWORD INPUT W/ VISIBILITY ICON
+                    // PASSWORD INPUT
                     TextFormField(
                       controller: _passwordController,
                       obscureText: !_isPasswordVisible,
@@ -210,7 +257,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: Icon(Icons.lock_outline, color: _themeColor),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                            _isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: Colors.grey.shade500,
                           ),
                           onPressed: () {
@@ -272,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     SizedBox(height: 32),
 
-                    // SIGN UP LINK
+                    // SIGN UP
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -280,7 +329,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(color: Colors.grey.shade600)),
                         GestureDetector(
                           onTap: () => Navigator.push(
-                              context, MaterialPageRoute(builder: (_) => const SignupScreen())),
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SignupScreen())),
                           child: Text(
                             "Sign up",
                             style: TextStyle(
@@ -291,6 +342,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
+
                     SizedBox(height: 40),
                   ],
                 ),

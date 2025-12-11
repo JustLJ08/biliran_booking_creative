@@ -4,8 +4,10 @@ import 'package:image_picker/image_picker.dart';   // NEW
 import '../../services/api_service.dart';
 import '../../models/sub_category.dart';
 import '../../models/industry.dart';
-import 'provider_dashboard_screen.dart';
 import 'dart:io'; // NEW
+import 'verification_pending_screen.dart';
+
+
 class CreateProfileScreen extends StatefulWidget {
   const CreateProfileScreen({super.key});
 
@@ -104,7 +106,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     if (success && mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const ProviderDashboardScreen()),
+        MaterialPageRoute(builder: (context) => const VerificationPendingScreen()),
       );
     } else {
       ScaffoldMessenger.of(context)

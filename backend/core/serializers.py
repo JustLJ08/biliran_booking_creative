@@ -56,23 +56,24 @@ class ServicePackageSerializer(serializers.ModelSerializer):
 #  PRODUCT SERIALIZER
 # -------------------------------
 class ProductSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
         fields = ['id', 'creative', 'name', 'description', 'price', 'stock', 'image_url']
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
+    def get_image_url(self, obj):
+        request = self.context.get('request')
 
-        if instance.image_url:
+        if obj.image_url:
             try:
-                # Cloudinary returns a complete CDN URL
-                representation["image_url"] = instance.image_url.url
+                return request.build_absolute_uri(obj.image_url.url)
             except:
-                representation["image_url"] = None
-        else:
-            representation["image_url"] = None
+                return obj.image_url.url
 
-        return representation
+        return None
+
+
 
 
 class OrderSerializer(serializers.ModelSerializer):
