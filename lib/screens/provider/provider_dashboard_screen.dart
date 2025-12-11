@@ -853,88 +853,79 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
 
   // --- TAB 5: PROFILE ---
-  Widget _buildProfileTab() {
-  return SafeArea(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 24),
+ Widget _buildProfileTab() {
+  return SingleChildScrollView(
+    padding: const EdgeInsets.all(24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
 
-          // Avatar
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF4F46E5), width: 2),
+        // Avatar
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF4F46E5), width: 2),
+          ),
+          child: const CircleAvatar(
+            radius: 50,
+            backgroundColor: Color(0xFFEEF2FF),
+            child: Icon(Icons.person, size: 50, color: Color(0xFF4F46E5)),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Title
+        Text(
+          "Provider Account",
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Text(
+          "Manage your account settings",
+          style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.grey),
+        ),
+        const SizedBox(height: 48),
+
+        // Options
+        _buildProfileOption(Icons.settings_outlined, "Account Settings"),
+        const SizedBox(height: 16),
+
+        _buildProfileOption(Icons.help_outline, "Help & Support"),
+        const SizedBox(height: 32),
+
+        // Logout button
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _logout,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFEE2E2),
+              foregroundColor: const Color(0xFFEF4444),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
             ),
-            child: const CircleAvatar(
-              radius: 50,
-              backgroundColor: Color(0xFFEEF2FF),
-              child: Icon(Icons.person, size: 50, color: Color(0xFF4F46E5)),
+            icon: const Icon(Icons.logout_rounded),
+            label: Text(
+              "Log Out",
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
             ),
           ),
+        ),
 
-          const SizedBox(height: 24),
-
-          // Name / Title
-          Text(
-            "Provider Account",
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF111827),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            "Manage your account settings",
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
-          ),
-
-          const SizedBox(height: 40),
-
-          // Settings Options
-          _buildProfileOption(Icons.settings_outlined, "Account Settings"),
-          const SizedBox(height: 16),
-          _buildProfileOption(Icons.help_outline, "Help & Support"),
-
-          const SizedBox(height: 40),
-
-          // Logout Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _logout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFEE2E2),
-                foregroundColor: const Color(0xFFEF4444),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
-              icon: const Icon(Icons.logout_rounded),
-              label: Text(
-                "LOG OUT",
-                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 40),
-        ],
-      ),
+        const SizedBox(height: 40),
+      ],
     ),
   );
 }
+
+
 
   // Helper for Profile Options
   Widget _buildProfileOption(IconData icon, String title) {

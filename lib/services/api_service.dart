@@ -416,43 +416,52 @@ static Future<void> logout() async {
   // ===========================================================================
   // PROFILE MANAGEMENT
   // ===========================================================================
+static Future<bool> createCreativeProfile(
+  int subCategoryId,
+  String bio,
+  double hourlyRate,
+  String? portfolioUrl,
+  XFile? profileImage,
+) async {
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getInt('userId');
 
-  static Future<bool> createCreativeProfile(
-    int subCategoryId,
-    String bio,
-    double hourlyRate,
-    String? portfolioUrl,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('userId');
+  if (userId == null) return false;
 
-    if (userId == null) return false;
+  final url = Uri.parse('$baseUrl/create-profile/');
 
-    final url = Uri.parse('$baseUrl/create-profile/');
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'sub_category_id': subCategoryId,
-          'bio': bio,
-          'hourly_rate': hourlyRate,
-          'portfolio_url': portfolioUrl,
-          'user': userId,
-        }),
+  try {
+    var request = http.MultipartRequest('POST', url);
+
+    request.fields['sub_category_id'] = subCategoryId.toString();
+    request.fields['bio'] = bio;
+    request.fields['hourly_rate'] = hourlyRate.toString();
+    request.fields['portfolio_url'] = portfolioUrl ?? '';
+    request.fields['user'] = userId.toString();
+
+    if (profileImage != null) {
+      final bytes = await profileImage.readAsBytes();
+      final ext = profileImage.name.split('.').last;
+
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'profile_image',      // ← field name from Django Model
+          bytes,
+          filename: 'avatar.$ext',
+        ),
       );
-      
-      if (response.statusCode != 201) {
-        print("Create Profile Error: ${response.statusCode}");
-        print("Body: ${response.body}");
-      }
-
-      return response.statusCode == 201;
-    } catch (e) {
-      print("Profile Creation Error: $e");
-      return false;
     }
+
+    final response = await http.Response.fromStream(await request.send());
+    print("Create Profile Response: ${response.statusCode} ${response.body}");
+
+    return response.statusCode == 201;
+  } catch (e) {
+    print("Profile Upload Error: $e");
+    return false;
   }
+}
+
 
   static Future<bool> hasCreativeProfile() async {
     final prefs = await SharedPreferences.getInstance();
@@ -521,45 +530,63 @@ static Future<void> logout() async {
   }
 
   static Future<bool> createProduct(
-    String name,
-    String description,
-    double price,
-    int stock,
-    int creativeProfileId,
-    XFile? image,
-  ) async {
-    final url = Uri.parse('$baseUrl/products/');
+  String name,
+  String description,
+  double price,
+  int stock,
+  int creativeProfileId,
+  XFile? image,
+) async {
+  final url = Uri.parse('$baseUrl/products/');
 
-    try {
-      var request = http.MultipartRequest('POST', url);
+  try {
+    var request = http.MultipartRequest('POST', url);
 
-      request.fields['creative'] = creativeProfileId.toString();
-      request.fields['name'] = name;
-      request.fields['description'] = description;
-      request.fields['price'] = price.toString();
-      request.fields['stock'] = stock.toString();
+    request.fields['creative'] = creativeProfileId.toString();
+    request.fields['name'] = name;
+    request.fields['description'] = description;
+    request.fields['price'] = price.toString();
+    request.fields['stock'] = stock.toString();
 
-      if (image != null) {
+    // --------------------------
+    // IMAGE HANDLING (WEB + MOBILE)
+    // --------------------------
+    if (image != null) {
+      if (kIsWeb) {
+        // WEB → must send bytes
         final Uint8List bytes = await image.readAsBytes();
 
         request.files.add(
           http.MultipartFile.fromBytes(
-            'image_url', 
+            'image_url',
             bytes,
             filename: image.name,
           ),
         );
+      } else {
+        // MOBILE → better to use fromPath
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'image_url',
+            image.path,
+          ),
+        );
       }
-
-      final response = await http.Response.fromStream(await request.send());
-      print("Create Product Response: ${response.statusCode} ${response.body}");
-
-      return response.statusCode == 201;
-    } catch (e) {
-      print("Error creating product: $e");
-      return false;
     }
+
+    // SEND
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    print("Create Product Response: ${response.statusCode} ${response.body}");
+
+    return response.statusCode == 201;
+  } catch (e) {
+    print("Error creating product: $e");
+    return false;
   }
+}
+
 
   // ===========================================================================
   // ORDERS

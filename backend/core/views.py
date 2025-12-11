@@ -257,22 +257,32 @@ class BookingDetail(generics.RetrieveUpdateDestroyAPIView):
 # PRODUCT & ORDER VIEWS
 # ==========================
 
+from rest_framework.parsers import MultiPartParser, FormParser
+
 class ProductList(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
+    parser_classes = (MultiPartParser, FormParser)
     filter_backends = [filters.SearchFilter]
     search_fields = ["name"]
 
     def get_queryset(self):
-        queryset = Product.objects.all()
         creative_id = self.request.query_params.get("creative_id")
         if creative_id:
-            queryset = queryset.filter(creative_id=creative_id)
-        return queryset
+            return Product.objects.filter(creative_id=creative_id)
+        return Product.objects.all()
 
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    def perform_create(self, serializer):
+        serializer.save()
 
 class ProductDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+
+    def get_serializer_context(self):
+        return {"request": self.request}
 
 
 class OrderList(generics.ListCreateAPIView):
@@ -319,27 +329,31 @@ class ServicePackageList(generics.ListCreateAPIView):
 # PROFILE VIEWS
 # ==========================
 
+from rest_framework.parsers import MultiPartParser, FormParser
+
 class CreateCreativeProfile(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+
     def post(self, request):
         user_id = request.data.get("user")
 
-        # Check if profile already exists
         if CreativeProfile.objects.filter(user_id=user_id).exists():
-            return Response(
-                {"message": "Profile already exists", "status": "exists"},
-                status=status.HTTP_200_OK,
-            )
+            return Response({"message": "Profile already exists", "status": "exists"}, status=200)
 
         serializer = CreativeProfileSerializer(data=request.data, context={'request': request})
+
         if serializer.is_valid():
             serializer.save(user_id=user_id, is_verified=False)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=201)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=400)
 
 
 class CreativeProfileDetail(generics.RetrieveAPIView):
     serializer_class = CreativeProfileSerializer
+
+    def get_serializer_context(self):
+        return {'request': self.request}
 
     def get_object(self):
         user_id = self.request.query_params.get("user_id")
