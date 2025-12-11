@@ -62,12 +62,16 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        request = self.context.get('request')
-        
-        if instance.image_url and request:
-            image_url = instance.image_url.url
-            representation['image_url'] = request.build_absolute_uri(image_url)
-            
+
+        if instance.image_url:
+            try:
+                # Cloudinary returns a complete CDN URL
+                representation["image_url"] = instance.image_url.url
+            except:
+                representation["image_url"] = None
+        else:
+            representation["image_url"] = None
+
         return representation
 
 
