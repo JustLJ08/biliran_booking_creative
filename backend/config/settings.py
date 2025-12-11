@@ -144,9 +144,9 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration
-#CORS_ALLOWED_ORIGINS = ["https://biliran-booking-creative.onrender.com","http://127.0.0.1:8000",]
+CORS_ALLOWED_ORIGINS = ["https://biliran-booking-creative.onrender.com","http://127.0.0.1:8000",]
 
-CORS_ALLOW_ALL_ORIGINS = True
+#CORS_ALLOW_ALL_ORIGINS = True
 
 
 #Email Config for OTP sending
