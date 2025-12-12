@@ -120,9 +120,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 CLOUDINARY_STORAGE = {
-    "CLOUD_NAME" :'db7b7izxn', 
-    "API_KEY" : '849289765961966'  ,
-    "API_SECRET" : 'VR2KornDc-r8zsFfLXBv63xKyx8',  
+    'CLOUD_NAME' :'db7b7izxn', 
+    'API_KEY' : '849289765961966'  ,
+    'API_SECRET' : 'VR2KornDc-r8zsFfLXBv63xKyx8',
+    'SECURE': True;
 }
 
 MEDIA_URL = '/media/'
