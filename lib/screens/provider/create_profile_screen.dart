@@ -5,6 +5,8 @@ import '../../services/api_service.dart';
 import '../../models/sub_category.dart';
 import '../../models/industry.dart';
 import 'dart:io'; // NEW
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'verification_pending_screen.dart';
 
 
@@ -21,6 +23,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   final _portfolioController = TextEditingController();
 
   XFile? _selectedImage; // NEW: Profile image picked by user
+  Uint8List? _imageBytes; // For Web preview
 
   final ImagePicker _picker = ImagePicker();
 
@@ -75,8 +78,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
         await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
 
     if (image != null) {
+      final bytes = await image.readAsBytes();
       setState(() {
         _selectedImage = image;
+        _imageBytes = bytes;
       });
     }
   }
@@ -145,10 +150,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 child: CircleAvatar(
                   radius: 55,
                   backgroundColor: Colors.indigo.shade100,
-                  backgroundImage: _selectedImage != null
-                      ? FileImage(
-                          File(_selectedImage!.path),
-                        )
+                  backgroundImage: _imageBytes != null
+                      ? MemoryImage(_imageBytes!) as ImageProvider
                       : null,
                   child: _selectedImage == null
                       ? const Icon(Icons.camera_alt,

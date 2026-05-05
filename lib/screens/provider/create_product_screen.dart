@@ -28,20 +28,11 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      // FIX: Handle Web preview by reading bytes immediately
-      if (kIsWeb) {
-        final bytes = await image.readAsBytes();
-        setState(() {
-          _selectedImage = image;
-          _imageBytes = bytes;
-        });
-      } else {
-        // Mobile can still rely on the XFile path for preview (File object)
-        setState(() {
-          _selectedImage = image;
-          _imageBytes = null;
-        });
-      }
+      final bytes = await image.readAsBytes();
+      setState(() {
+        _selectedImage = image;
+        _imageBytes = bytes;
+      });
     }
   }
 
@@ -139,15 +130,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
-                          // FIX 2: Conditional image display for preview
-                          if (kIsWeb && _imageBytes != null)
+                          if (_imageBytes != null)
                             Image.memory(
-                              _imageBytes!, // Use Image.memory with bytes for Web
-                              fit: BoxFit.cover,
-                            )
-                          else if (!kIsWeb)
-                            Image.file(
-                              File(_selectedImage!.path), // Use Image.file for Mobile
+                              _imageBytes!, // Use Image.memory with bytes for all platforms
                               fit: BoxFit.cover,
                             ),
                           
