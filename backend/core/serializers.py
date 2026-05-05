@@ -71,9 +71,16 @@ class ProductSerializer(serializers.ModelSerializer):
 
         if obj.image_url:
             try:
-                return request.build_absolute_uri(obj.image_url.url)
+                url = obj.image_url.url
+                # Cloudinary returns full absolute URLs — don't wrap them
+                if url.startswith('http'):
+                    return url
+                # Local/relative URLs need the request context
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
             except:
-                return obj.image_url.url
+                return None
 
         return None
 
@@ -126,8 +133,18 @@ class CreativeProfileSerializer(serializers.ModelSerializer):
 
     def get_profile_image_url(self, obj):
         request = self.context.get('request')
-        if obj.profile_image and request:
-            return request.build_absolute_uri(obj.profile_image.url)
+        if obj.profile_image:
+            try:
+                url = obj.profile_image.url
+                # Cloudinary returns full absolute URLs — don't wrap them
+                if url.startswith('http'):
+                    return url
+                # Local/relative URLs need the request context
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+            except:
+                return None
         return None
 
 

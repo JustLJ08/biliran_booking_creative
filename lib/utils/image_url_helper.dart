@@ -1,10 +1,40 @@
 import 'package:flutter/foundation.dart';
 
 /// Fixes image URLs so they resolve correctly on all platforms:
+/// - Production (release APK): returns Cloudinary URLs as-is, or prepends production base
 /// - Web: uses 127.0.0.1
 /// - Android Emulator: uses 10.0.2.2 (proxy to host machine)
 /// - Linux/macOS/Windows/iOS Simulator: uses 127.0.0.1
 String fixImageUrl(String url) {
+  // If URL is already a Cloudinary URL or any external HTTPS URL, return as-is.
+  // This is the production case — Cloudinary storage returns full URLs.
+  if (url.startsWith('https://res.cloudinary.com') ||
+      url.startsWith('http://res.cloudinary.com')) {
+    return url;
+  }
+
+  // Check if we're in production (release) mode
+  const bool isProduction = bool.fromEnvironment('dart.vm.product');
+
+  if (isProduction) {
+    // In production release APK, image URLs should point to the production server
+    // or already be absolute Cloudinary URLs (handled above).
+    if (url.startsWith('http')) {
+      // Already absolute — could be pointing to localhost from a bad serializer response.
+      // Replace any localhost/10.0.2.2 references with the production server.
+      if (url.contains('127.0.0.1') || url.contains('localhost') || url.contains('10.0.2.2')) {
+        String cleanPath = url.replaceAll(RegExp(r'https?://[^/]+'), '');
+        return 'https://biliran-booking-creative.onrender.com$cleanPath';
+      }
+      return url;
+    } else {
+      // Relative URL — prepend production base
+      return 'https://biliran-booking-creative.onrender.com$url';
+    }
+  }
+
+  // --- DEBUG MODE BELOW ---
+
   // Only Android emulator needs the 10.0.2.2 workaround
   final bool needsEmulatorProxy =
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
