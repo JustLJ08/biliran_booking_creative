@@ -21,9 +21,12 @@ class ApiService {
     } else if (kIsWeb) {
       // Running in the browser
       return 'http://127.0.0.1:8000/api';
-    } else {
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
       // Running in Android Emulator Debug Mode
-      return 'https://biliran-booking-creative.onrender.com/api'; 
+      return 'http://10.0.2.2:8000/api';
+    } else {
+      // Running in iOS Simulator or Desktop (Linux, macOS, Windows) Debug Mode
+      return 'http://127.0.0.1:8000/api';
     }
   }
 
