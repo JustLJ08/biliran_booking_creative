@@ -836,6 +836,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       ],
     ),
   );
+  }
+
    // --- TAB 5: PROFILE ---
  Widget _buildProfileTab() {
   return SafeArea(
@@ -929,8 +931,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     ),
   );
 }
-}
-
 
 
   // --- WIDGET HELPERS ---
