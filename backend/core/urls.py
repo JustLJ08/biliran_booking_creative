@@ -20,7 +20,9 @@ from .views import (
     get_booking_contract, sign_contract,
     # Chat ViewSet
     ChatMessageViewSet,
-    check_creative_verified
+    check_creative_verified,
+    # Conversation View
+    ConversationMessagesView,
 )
 
 # 1. Create a Router
@@ -80,6 +82,9 @@ urlpatterns = [
     # Contract
     path('contract/booking/<int:booking_id>/', get_booking_contract, name='get-contract'),
     path('contract/sign/<int:contract_id>/', sign_contract, name='sign-contract'),
+
+    # Conversation (aggregated by client-provider pair)
+    path('conversation/messages/', ConversationMessagesView.as_view(), name='conversation-messages'),
 
     # Admin
     path('admin/pending-creatives/', AdminPendingCreatives.as_view(), name='admin-pending-list'),

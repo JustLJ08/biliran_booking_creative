@@ -6,14 +6,24 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart'; // Import your ApiService
 
 class ChatScreen extends StatefulWidget {
-  final int bookingId;
+  // Legacy: per-booking chat
+  final int? bookingId;
   final String providerName; // This represents the "Other Person" (Client or Provider)
 
+  // New: conversation-based chat (aggregated across bookings)
+  final int? clientId;
+  final int? creativeUserId;
+
   const ChatScreen({
-    super.key, 
-    required this.bookingId, 
-    required this.providerName
+    super.key,
+    this.bookingId,
+    required this.providerName,
+    this.clientId,
+    this.creativeUserId,
   });
+
+  /// Whether this chat uses the new conversation-based API
+  bool get isConversationMode => clientId != null && creativeUserId != null;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -32,7 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _loadMessages();
     
-    // Poll for new messages every 3 seconds (Simulates real-time connection)
+    // Poll for new messages every 2 seconds (Simulates real-time connection)
     _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
       _loadMessages(isPolling: true);
     });
@@ -48,8 +58,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Fetch messages from API
   Future<void> _loadMessages({bool isPolling = false}) async {
-    // This calls the static method we added to ApiService
-    final newMessages = await ApiService.fetchChatMessages(widget.bookingId);
+    List<Map<String, dynamic>> newMessages;
+
+    if (widget.isConversationMode) {
+      // New: aggregated conversation across all bookings
+      newMessages = await ApiService.fetchConversationMessages(
+        widget.clientId!,
+        widget.creativeUserId!,
+      );
+    } else {
+      // Legacy: per-booking messages
+      newMessages = await ApiService.fetchChatMessages(widget.bookingId ?? 0);
+    }
     
     if (mounted) {
       setState(() {
@@ -58,7 +78,6 @@ class _ChatScreenState extends State<ChatScreen> {
       });
 
       // If it's the first load (or specifically if new messages arrived), scroll to bottom
-      // Logic: If not polling (initial load) OR if polling and list length grew
       if (!isPolling && newMessages.isNotEmpty) {
         _scrollToBottom();
       }
@@ -91,7 +110,16 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     // 2. Send to Backend
-    final success = await ApiService.sendChatMessage(widget.bookingId, textToSend);
+    bool success;
+    if (widget.isConversationMode) {
+      success = await ApiService.sendConversationMessage(
+        widget.clientId!,
+        widget.creativeUserId!,
+        textToSend,
+      );
+    } else {
+      success = await ApiService.sendChatMessage(widget.bookingId ?? 0, textToSend);
+    }
 
     if (!success) {
       if (mounted) {

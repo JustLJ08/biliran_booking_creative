@@ -73,30 +73,39 @@ class _CreativeDetailScreenState extends State<CreativeDetailScreen> with Single
                   children: [
                     const SizedBox(height: 40),
                     // 2. Updated Avatar Logic to use Profile Image
-                    Container(
-                      width: 96, height: 96,
-                      decoration: BoxDecoration(
+                    ClipOval(
+                      child: Container(
+                        width: 96, height: 96,
                         color: const Color(0xFF4F46E5),
-                        shape: BoxShape.circle,
-                        image: (widget.creative.profileImageUrl != null)
-                            ? DecorationImage(
-                                image: NetworkImage(fixImageUrl(widget.creative.profileImageUrl!)),
+                        child: (widget.creative.profileImageUrl != null && widget.creative.profileImageUrl!.isNotEmpty)
+                            ? Image.network(
+                                fixImageUrl(widget.creative.profileImageUrl!),
+                                width: 96, height: 96,
                                 fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Text(
+                                      displayName.isNotEmpty ? displayName[0].toUpperCase() : "?",
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 40,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  );
+                                },
                               )
-                            : null,
-                      ),
-                      child: (widget.creative.profileImageUrl == null)
-                          ? Center(
-                              child: Text(
-                                displayName.isNotEmpty ? displayName[0].toUpperCase() : "?",
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                            : Center(
+                                child: Text(
+                                  displayName.isNotEmpty ? displayName[0].toUpperCase() : "?",
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 40,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                            )
-                          : null,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(

@@ -6,10 +6,12 @@ import 'package:flutter/foundation.dart';
 /// - Android Emulator: uses 10.0.2.2 (proxy to host machine)
 /// - Linux/macOS/Windows/iOS Simulator: uses 127.0.0.1
 String fixImageUrl(String url) {
+  // Safety: handle empty/null-ish URLs
+  if (url.isEmpty) return '';
+
   // If URL is already a Cloudinary URL or any external HTTPS URL, return as-is.
-  // This is the production case — Cloudinary storage returns full URLs.
-  if (url.startsWith('https://res.cloudinary.com') ||
-      url.startsWith('http://res.cloudinary.com')) {
+  // Broadened to match any cloudinary.com subdomain (res, res-console, etc.)
+  if (url.contains('cloudinary.com')) {
     return url;
   }
 
@@ -60,4 +62,11 @@ String fixImageUrl(String url) {
         : 'http://127.0.0.1:8000';
     return '$base$url';
   }
+}
+
+/// Validates whether a URL string is likely a loadable image URL.
+/// Use this before passing to Image.network to avoid exceptions.
+bool isValidImageUrl(String? url) {
+  if (url == null || url.isEmpty) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
 }

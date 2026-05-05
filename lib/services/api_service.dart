@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart'; // Import kIsWeb
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart'; // For MediaType in file uploads
 import 'package:shared_preferences/shared_preferences.dart'; // For saving login info
 import 'package:image_picker/image_picker.dart'; // Required for XFile
 import '../models/industry.dart';
@@ -27,6 +28,26 @@ class ApiService {
     } else {
       // Running in iOS Simulator or Desktop (Linux, macOS, Windows) Debug Mode
       return 'http://127.0.0.1:8000/api';
+    }
+  }
+
+  /// Determine the MIME type from a file extension for proper Cloudinary upload.
+  static MediaType _getMimeType(String filename) {
+    final ext = filename.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return MediaType('image', 'jpeg');
+      case 'png':
+        return MediaType('image', 'png');
+      case 'gif':
+        return MediaType('image', 'gif');
+      case 'webp':
+        return MediaType('image', 'webp');
+      case 'bmp':
+        return MediaType('image', 'bmp');
+      default:
+        return MediaType('application', 'octet-stream');
     }
   }
 
@@ -212,6 +233,76 @@ static Future<void> logout() async {
       return false;
     }
   }
+
+  // ===========================================================================
+  // CONVERSATION MESSAGING (Aggregated by client-provider pair)
+  // ===========================================================================
+
+  /// Fetch all messages between a client and a creative, across ALL bookings.
+  static Future<List<Map<String, dynamic>>> fetchConversationMessages(
+      int clientId, int creativeUserId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentUserId = prefs.getInt('userId');
+
+    final url = Uri.parse(
+        '$baseUrl/conversation/messages/?client_id=$clientId&creative_user_id=$creativeUserId');
+
+    try {
+      final response =
+          await http.get(url, headers: {'Content-Type': 'application/json'});
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+
+        return data.map<Map<String, dynamic>>((msg) {
+          bool isMe = false;
+          if (currentUserId != null && msg['sender'] != null) {
+            isMe = msg['sender'] == currentUserId;
+          }
+
+          return {
+            "text": msg['content'] ?? msg['message'] ?? "",
+            "isMe": isMe,
+            "timestamp": msg['created_at'],
+          };
+        }).toList();
+      }
+    } catch (e) {
+      print("Error fetching conversation messages: $e");
+    }
+    return [];
+  }
+
+  /// Send a message in a conversation between a client and creative.
+  /// The backend attaches it to the most recent booking between them.
+  static Future<bool> sendConversationMessage(
+      int clientId, int creativeUserId, String message) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+
+    if (userId == null) return false;
+
+    final url = Uri.parse('$baseUrl/conversation/messages/');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'client_id': clientId,
+          'creative_user_id': creativeUserId,
+          'sender': userId,
+          'message': message,
+        }),
+      );
+
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print("Error sending conversation message: $e");
+      return false;
+    }
+  }
+
 
   // ===========================================================================
   // PREFERENCES & RECOMMENDATIONS
@@ -451,6 +542,7 @@ static Future<bool> createCreativeProfile(
           'profile_image',      // ← field name from Django Model
           bytes,
           filename: 'avatar.$ext',
+          contentType: _getMimeType(profileImage.name),
         ),
       );
     }
@@ -564,6 +656,7 @@ static Future<bool> createCreativeProfile(
             'image_url',
             bytes,
             filename: image.name,
+            contentType: _getMimeType(image.name),
           ),
         );
       } else {
@@ -572,6 +665,7 @@ static Future<bool> createCreativeProfile(
           await http.MultipartFile.fromPath(
             'image_url',
             image.path,
+            contentType: _getMimeType(image.name),
           ),
         );
       }

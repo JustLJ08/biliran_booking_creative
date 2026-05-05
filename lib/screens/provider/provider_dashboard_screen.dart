@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart'; // Added for kIsWeb check
 import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
 import '../../models/booking.dart';
 import '../../models/order.dart';
@@ -18,15 +19,16 @@ class ProviderDashboardScreen extends StatefulWidget {
   State<ProviderDashboardScreen> createState() => _ProviderDashboardScreenState();
 }
 
-Widget _buildProviderChatTile(BuildContext context, Booking booking, String clientName) {
+Widget _buildProviderChatTile(BuildContext context, Booking booking, String clientName, int clientId, int creativeUserId) {
   return InkWell(
     onTap: () {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChatScreen(
-            bookingId: booking.id ?? 0,
             providerName: clientName,
+            clientId: clientId,
+            creativeUserId: creativeUserId,
           ),
         ),
       );
@@ -51,7 +53,7 @@ Widget _buildProviderChatTile(BuildContext context, Booking booking, String clie
             radius: 22,
             backgroundColor: Colors.indigo.shade50,
             child: Text(
-              clientName[0].toUpperCase(),
+              clientName.isNotEmpty ? clientName[0].toUpperCase() : "?",
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
                 color: Colors.indigo,
@@ -105,6 +107,13 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     super.initState();
     _refreshData();
   }
+
+  /// Returns the current user's ID (the creative/provider)
+  Future<int?> _getCreativeUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('userId');
+  }
+
 
   void _refreshData() {
     setState(() {
@@ -816,18 +825,36 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
               final bookings = snapshot.data!;
 
-              return ListView.builder(
-                padding: const EdgeInsets.only(top: 8, bottom: 24),
-                itemCount: bookings.length,
-                itemBuilder: (context, index) {
-                  final booking = bookings[index];
+              // De-duplicate by clientId: one chat per client
+              final Map<int, Booking> uniqueClients = {};
+              for (final b in bookings) {
+                final cId = b.clientId ?? 0;
+                uniqueClients.putIfAbsent(cId, () => b);
+              }
+              final uniqueChats = uniqueClients.values.toList();
 
-                  final clientName = (booking.clientName != null &&
-                          booking.clientName!.isNotEmpty)
-                      ? booking.clientName!
-                      : "Client #${booking.id}";
+              return FutureBuilder<int?>(
+                future: _getCreativeUserId(),
+                builder: (context, userSnap) {
+                  final creativeUserId = userSnap.data ?? 0;
 
-                  return _buildProviderChatTile(context, booking, clientName);
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(top: 8, bottom: 24),
+                    itemCount: uniqueChats.length,
+                    itemBuilder: (context, index) {
+                      final booking = uniqueChats[index];
+                      final clientId = booking.clientId ?? 0;
+
+                      final clientName = (booking.clientName != null &&
+                              booking.clientName!.isNotEmpty)
+                          ? booking.clientName!
+                          : "Client #${booking.id}";
+
+                      return _buildProviderChatTile(
+                        context, booking, clientName, clientId, creativeUserId,
+                      );
+                    },
+                  );
                 },
               );
             },

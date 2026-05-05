@@ -9,6 +9,7 @@ class Booking {
   // Provider details
   final String? creativeName;
   final String? creativeRole;
+  final int? creativeUserId;
 
   // --- NEW FIELDS YOU WERE MISSING ---
   final String? clientName; 
@@ -24,6 +25,7 @@ class Booking {
     this.status,
     this.creativeName,
     this.creativeRole,
+    this.creativeUserId,
     // --- ADD THESE TO CONSTRUCTOR ---
     this.clientName,
     this.clientId, 
@@ -50,6 +52,7 @@ class Booking {
       status: json['status'],
       creativeName: json['creative_name'] ?? 'Unknown Creative',
       creativeRole: json['creative_role'] ?? 'Professional',
+      creativeUserId: json['creative_user_id'],
       
       // --- FIX: Force a name if the API sends null ---
       clientName: json['client_name'] ?? json['user_name'] ?? "Client Name", 

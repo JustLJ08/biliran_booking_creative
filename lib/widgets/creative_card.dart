@@ -43,30 +43,40 @@ class CreativeCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Profile Avatar with Image Support
-              Container(
-                width: 60, height: 60,
-                decoration: BoxDecoration(
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 60, height: 60,
                   color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(12),
-                  image: (creative.profileImageUrl != null)
-                      ? DecorationImage(
-                          image: NetworkImage(fixImageUrl(creative.profileImageUrl!)),
+                  child: (creative.profileImageUrl != null && creative.profileImageUrl!.isNotEmpty)
+                      ? Image.network(
+                          fixImageUrl(creative.profileImageUrl!),
+                          width: 60, height: 60,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Text(
+                                displayName.isNotEmpty ? displayName[0].toUpperCase() : "?",
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF4F46E5),
+                                ),
+                              ),
+                            );
+                          },
                         )
-                      : null,
-                ),
-                child: (creative.profileImageUrl == null)
-                    ? Center(
-                        child: Text(
-                          displayName.isNotEmpty ? displayName[0].toUpperCase() : "?",
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF4F46E5),
+                      : Center(
+                          child: Text(
+                            displayName.isNotEmpty ? displayName[0].toUpperCase() : "?",
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF4F46E5),
+                            ),
                           ),
                         ),
-                      )
-                    : null,
+                ),
               ),
               const SizedBox(width: 16),
               // Details

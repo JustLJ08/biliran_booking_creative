@@ -539,6 +539,75 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
             serializer.save()
 
 
+class ConversationMessagesView(APIView):
+    """
+    Aggregates chat messages across ALL bookings between a specific
+    client and creative (provider). This ensures one chat thread per
+    client-provider pair instead of per booking.
+
+    GET  ?client_id=X&creative_user_id=Y  → all messages between them
+    POST {client_id, creative_user_id, sender, message} → attach to latest booking
+    """
+
+    def _get_bookings(self, client_id, creative_user_id):
+        """Return all bookings between the client and creative."""
+        return Booking.objects.filter(
+            client_id=client_id,
+            creative__user_id=creative_user_id,
+        ).order_by('-created_at')
+
+    def get(self, request):
+        client_id = request.query_params.get('client_id')
+        creative_user_id = request.query_params.get('creative_user_id')
+
+        if not client_id or not creative_user_id:
+            return Response(
+                {"error": "client_id and creative_user_id are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        bookings = self._get_bookings(client_id, creative_user_id)
+        booking_ids = bookings.values_list('id', flat=True)
+
+        messages = ChatMessage.objects.filter(
+            booking_id__in=booking_ids
+        ).order_by('created_at')
+
+        serializer = ChatMessageSerializer(messages, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        client_id = request.data.get('client_id')
+        creative_user_id = request.data.get('creative_user_id')
+        sender_id = request.data.get('sender')
+        message_text = request.data.get('message')
+
+        if not all([client_id, creative_user_id, sender_id, message_text]):
+            return Response(
+                {"error": "client_id, creative_user_id, sender, and message are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        bookings = self._get_bookings(client_id, creative_user_id)
+        if not bookings.exists():
+            return Response(
+                {"error": "No bookings found between this client and creative"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Attach message to the most recent booking
+        latest_booking = bookings.first()
+
+        chat_msg = ChatMessage.objects.create(
+            booking=latest_booking,
+            sender_id=sender_id,
+            message=message_text,
+        )
+
+        serializer = ChatMessageSerializer(chat_msg)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
 class AdminBookingList(generics.ListAPIView):
     queryset = Booking.objects.all().order_by('-created_at')
     serializer_class = BookingSerializer

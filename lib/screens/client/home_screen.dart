@@ -668,11 +668,11 @@ Widget _buildInboxTab() {
 
               // ---------------- REMOVE DUPLICATES ----------------
               final rawBookings = snapshot.data!;
-              final Map<String, Booking> uniqueProviders = {};
+              final Map<int, Booking> uniqueProviders = {};
 
               for (final b in rawBookings) {
-                final name = b.creativeName ?? "Unknown";
-                uniqueProviders.putIfAbsent(name, () => b);
+                final cId = b.creativeId;
+                uniqueProviders.putIfAbsent(cId, () => b);
               }
 
               final uniqueChats = uniqueProviders.values.toList();
@@ -732,13 +732,20 @@ Widget _buildInboxTab() {
     final dateDisplay = _formatChatDate(booking.date);
 
     return InkWell(
-      onTap: () {
+      onTap: () async {
+        // Get the current user's (client) ID for conversation mode
+        final prefs = await SharedPreferences.getInstance();
+        final clientId = prefs.getInt('userId') ?? 0;
+        final creativeUserId = booking.creativeUserId ?? 0;
+
+        if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ChatScreen(
-              bookingId: booking.id ?? 0,
               providerName: name,
+              clientId: clientId,
+              creativeUserId: creativeUserId,
             ),
           ),
         ).then((_) => _refreshData());

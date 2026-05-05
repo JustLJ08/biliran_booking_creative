@@ -15,6 +15,7 @@ dependencies:
 
   # Networking
   http: ^1.2.0
+  http_parser: ^4.0.0
 
   # Fonts & Styling
   google_fonts: ^6.1.0

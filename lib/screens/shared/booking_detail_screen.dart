@@ -227,12 +227,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFEEEEEE)))),
         child: ElevatedButton.icon(
           onPressed: () {
+            final clientId = widget.booking.clientId ?? 0;
+            final creativeUserId = widget.booking.creativeUserId ?? 0;
+
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => ChatScreen(
-                  bookingId: widget.booking.id ?? 0,
                   providerName: targetName,
+                  clientId: clientId,
+                  creativeUserId: creativeUserId,
                 ),
               ),
             );

@@ -73,13 +73,18 @@ class ProductSerializer(serializers.ModelSerializer):
             try:
                 url = obj.image_url.url
                 # Cloudinary returns full absolute URLs — don't wrap them
+                if url.startswith('http') and 'cloudinary.com' in url:
+                    return url
+                # Other absolute URLs — return as-is
                 if url.startswith('http'):
                     return url
                 # Local/relative URLs need the request context
                 if request:
                     return request.build_absolute_uri(url)
                 return url
-            except:
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Error getting image URL for Product {obj.id}: {e}")
                 return None
 
         return None
@@ -137,13 +142,18 @@ class CreativeProfileSerializer(serializers.ModelSerializer):
             try:
                 url = obj.profile_image.url
                 # Cloudinary returns full absolute URLs — don't wrap them
+                if url.startswith('http') and 'cloudinary.com' in url:
+                    return url
+                # Other absolute URLs — return as-is
                 if url.startswith('http'):
                     return url
                 # Local/relative URLs need the request context
                 if request:
                     return request.build_absolute_uri(url)
                 return url
-            except:
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Error getting profile image URL for CreativeProfile {obj.id}: {e}")
                 return None
         return None
 
@@ -154,13 +164,14 @@ class CreativeProfileSerializer(serializers.ModelSerializer):
 class BookingSerializer(serializers.ModelSerializer):
     creative_name = serializers.CharField(source='creative.user.first_name', read_only=True)
     creative_role = serializers.CharField(source='creative.sub_category.name', read_only=True)
+    creative_user_id = serializers.IntegerField(source='creative.user.id', read_only=True)
     client_name = serializers.CharField(source='client.username', read_only=True)
 
     class Meta:
         model = Booking
         fields = [
             'id', 'client', 'client_name',
-            'creative', 'creative_name', 'creative_role',
+            'creative', 'creative_name', 'creative_role', 'creative_user_id',
             'booking_date', 'booking_time', 'project_type',
             'requirements', 'status', 'created_at'
         ]
