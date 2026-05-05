@@ -2,6 +2,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/foundation.dart'; // for kIsWeb
+import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
@@ -201,18 +202,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  // Fix URLs for emulator, web, local dev
-  String _fixImageUrl(String url) {
-    if (url.startsWith('http')) {
-      if (!kIsWeb) {
-        if (url.contains('127.0.0.1')) {
-          return url.replaceFirst('127.0.0.1', '10.0.2.2');
-        }
-      }
-      return url;
-    }
-    return kIsWeb ? "http://127.0.0.1:8000$url" : "http://10.0.2.2:8000$url";
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -536,7 +526,7 @@ Widget _buildEmptyState(String message, IconData icon) {
                 radius: 30,
                 backgroundColor: Colors.grey.shade100,
                 backgroundImage: creative.profileImageUrl != null
-                    ? NetworkImage(_fixImageUrl(creative.profileImageUrl!))
+                    ? NetworkImage(fixImageUrl(creative.profileImageUrl!))
                     : null,
                 child: creative.profileImageUrl == null
                     ? Text(
@@ -793,7 +783,7 @@ Widget _buildEmptyState(String message, IconData icon) {
             Expanded(
               child: product.imageUrl != null
                   ? Image.network(
-                      _fixImageUrl(product.imageUrl!),
+                      fixImageUrl(product.imageUrl!),
                       fit: BoxFit.cover,
                       width: double.infinity,
                     )

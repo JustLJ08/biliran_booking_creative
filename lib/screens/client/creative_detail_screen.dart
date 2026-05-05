@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart'; // For kIsWeb
+import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/creative.dart';
@@ -25,20 +26,7 @@ class _CreativeDetailScreenState extends State<CreativeDetailScreen> with Single
     _futureProducts = ApiService.fetchProducts(widget.creative.id);
   }
 
-  // Helper to fix localhost image URLs
-  String _fixImageUrl(String url) {
-    if (url.startsWith('http')) {
-      if (!kIsWeb) {
-        if (url.contains('127.0.0.1')) return url.replaceFirst('127.0.0.1', '10.0.2.2');
-        if (url.contains('localhost')) return url.replaceFirst('localhost', '10.0.2.2');
-      }
-      if (kIsWeb && url.contains('10.0.2.2')) return url.replaceFirst('10.0.2.2', '127.0.0.1');
-      return url;
-    } else {
-      String base = kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000';
-      return '$base$url';
-    }
-  }
+
 
   void _buyProduct(Product product) async {
     bool success = await ApiService.createOrder(product.id, 1);
@@ -92,7 +80,7 @@ class _CreativeDetailScreenState extends State<CreativeDetailScreen> with Single
                         shape: BoxShape.circle,
                         image: (widget.creative.profileImageUrl != null)
                             ? DecorationImage(
-                                image: NetworkImage(_fixImageUrl(widget.creative.profileImageUrl!)),
+                                image: NetworkImage(fixImageUrl(widget.creative.profileImageUrl!)),
                                 fit: BoxFit.cover,
                               )
                             : null,
@@ -308,7 +296,7 @@ class _CreativeDetailScreenState extends State<CreativeDetailScreen> with Single
                       clipBehavior: Clip.antiAlias,
                       child: hasImage 
                         ? Image.network(
-                            _fixImageUrl(product.imageUrl!),
+                            fixImageUrl(product.imageUrl!),
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => Icon(Icons.shopping_bag_outlined, color: Colors.grey.shade400, size: 32),
                           )

@@ -56,13 +56,17 @@ class ServicePackageSerializer(serializers.ModelSerializer):
 #  PRODUCT SERIALIZER
 # -------------------------------
 class ProductSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
+    # Read-only computed URL for displaying the image (renamed to avoid overriding writable model field)
+    image_display_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ['id', 'creative', 'name', 'description', 'price', 'stock', 'image_url']
+        fields = ['id', 'creative', 'name', 'description', 'price', 'stock', 'image_url', 'image_display_url']
+        extra_kwargs = {
+            'image_url': {'write_only': True, 'required': False},
+        }
 
-    def get_image_url(self, obj):
+    def get_image_display_url(self, obj):
         request = self.context.get('request')
 
         if obj.image_url:

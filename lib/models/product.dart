@@ -22,7 +22,7 @@ class Product {
       description: json['description'],
       price: double.tryParse(json['price'].toString()) ?? 0.0,
       stock: json['stock'] ?? 0,
-      imageUrl: json['image_url'],
+      imageUrl: json['image_display_url'],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart'; // Added for kIsWeb check
+import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
@@ -150,25 +151,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     return total;
   }
 
-  String _fixImageUrl(String url) {
-    if (url.startsWith('http')) {
-      if (!kIsWeb) {
-        if (url.contains('127.0.0.1')) {
-          return url.replaceFirst('127.0.0.1', '10.0.2.2');
-        }
-        if (url.contains('localhost')) {
-          return url.replaceFirst('localhost', '10.0.2.2');
-        }
-      }
-      if (kIsWeb && url.contains('10.0.2.2')) {
-          return url.replaceFirst('10.0.2.2', '127.0.0.1');
-      }
-      return url;
-    } else {
-      String base = kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000';
-      return '$base$url';
-    }
-  }
+
 
   Future<void> _updateStatus(int id, String status) async {
     bool success = await ApiService.updateBookingStatus(id, status);
@@ -629,7 +612,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
               clipBehavior: Clip.hardEdge,
               child: hasImage
                   ? Image.network(
-                      _fixImageUrl(product.imageUrl!),
+                      fixImageUrl(product.imageUrl!),
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Icon(Icons.broken_image_outlined, color: Colors.grey[400], size: 40);

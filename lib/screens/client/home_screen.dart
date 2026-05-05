@@ -3,6 +3,7 @@
 
 
 import 'package:flutter/foundation.dart';
+import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
@@ -237,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.network(
-                            _fixImageUrl(product.imageUrl!),
+                            fixImageUrl(product.imageUrl!),
                             height: 120,
                             fit: BoxFit.cover,
                             errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, size: 50, color: Colors.grey),
@@ -358,19 +359,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _fixImageUrl(String url) {
-    if (url.startsWith('http')) {
-      if (!kIsWeb) {
-        if (url.contains('127.0.0.1')) return url.replaceFirst('127.0.0.1', '10.0.2.2');
-        if (url.contains('localhost')) return url.replaceFirst('localhost', '10.0.2.2');
-      }
-      if (kIsWeb && url.contains('10.0.2.2')) return url.replaceFirst('10.0.2.2', '127.0.0.1');
-      return url;
-    } else {
-      String base = kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000';
-      return '$base$url';
-    }
-  }
+
 
   // --- ICON LOGIC ---
   IconData _getIconData(String code) {
@@ -1202,7 +1191,7 @@ Widget _buildInboxTab() {
                         child: CircleAvatar(
                           radius: 30,
                           backgroundColor: kPrimaryLight,
-                          backgroundImage: (creative.profileImageUrl != null) ? NetworkImage(_fixImageUrl(creative.profileImageUrl!)) : null,
+                          backgroundImage: (creative.profileImageUrl != null) ? NetworkImage(fixImageUrl(creative.profileImageUrl!)) : null,
                           child: (creative.profileImageUrl == null)
                               ? Text(creative.user.firstName.isNotEmpty ? creative.user.firstName[0].toUpperCase() : "U",
                                   style: GoogleFonts.plusJakartaSans(color: kPrimaryColor, fontWeight: FontWeight.w800, fontSize: 20))
@@ -1403,7 +1392,7 @@ Widget _buildInboxTab() {
                       clipBehavior: Clip.hardEdge,
                       child: hasImage
                           ? Image.network(
-                              _fixImageUrl(product.imageUrl!),
+                              fixImageUrl(product.imageUrl!),
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) => Icon(Icons.broken_image_rounded, color: Colors.grey[300], size: 40),
                             )
