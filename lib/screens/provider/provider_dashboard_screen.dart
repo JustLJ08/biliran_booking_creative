@@ -90,6 +90,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   
   // Data Futures
   late Future<List<Booking>> _futureBookings;
+  late Future<List<Booking>> _futureAllBookings;
   late Future<List<Order>> _futureOrders;
   late Future<List<Product>> _futureProducts;
 
@@ -107,17 +108,20 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
   void _refreshData() {
     setState(() {
-      _futureBookings = ApiService.fetchMyBookings()
-    .then((list) => list.where((b) => b.status == 'confirmed').toList());
+      // All bookings (for Bookings tab and Inbox)
+      _futureAllBookings = ApiService.fetchMyBookings();
+
+      // Only confirmed bookings (for Overview stat card)
+      _futureBookings = _futureAllBookings
+          .then((list) => list.where((b) => b.status == 'confirmed').toList());
 
       _futureOrders = ApiService.fetchProviderOrders();
       _futureProducts = _fetchProductsChain();
 
-      // Update badge count based on bookings
-      _futureBookings.then((bookings) {
+      // Update badge count based on ALL bookings (pending + confirmed)
+      _futureAllBookings.then((bookings) {
         if (mounted) {
           setState(() {
-            // Count total bookings as active conversations
             _unreadMsgCount = bookings.length;
           });
         }
@@ -683,10 +687,10 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   // --- TAB 2: BOOKINGS (Clickable) ---
   Widget _buildBookingsTab() {
     return FutureBuilder<List<Booking>>(
-      future: _futureBookings,
+      future: _futureAllBookings,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        if (!snapshot.hasData || snapshot.data!.isEmpty) return _buildEmptyState("No active bookings");
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return _buildEmptyState("No booking requests");
 
         return ListView.separated(
           padding: const EdgeInsets.all(20),
@@ -778,7 +782,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         // ---------------- CONVERSATION LIST ----------------
         Expanded(
           child: FutureBuilder<List<Booking>>(
-            future: _futureBookings,
+            future: _futureAllBookings,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());

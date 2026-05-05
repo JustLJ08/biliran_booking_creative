@@ -639,7 +639,7 @@ static Future<bool> createCreativeProfile(
     final userId = prefs.getInt('userId');
     if (userId == null) return [];
 
-    final url = Uri.parse('$baseUrl/orders/?client_id=$userId');
+    final url = Uri.parse('$baseUrl/orders/?creative_user_id=$userId');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
