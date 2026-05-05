@@ -29,11 +29,22 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
 
-    def perform_create(self, serializer):
-        user = serializer.save()
-        otp_obj, _ = EmailOTP.objects.get_or_create(user=user)
-        code = otp_obj.generate_otp()
-        send_otp_email(user.email, code)
+    def create(self, request, *args, **kwargs):
+        import traceback
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            otp_obj, _ = EmailOTP.objects.get_or_create(user=user)
+            code = otp_obj.generate_otp()
+            send_otp_email(user.email, code)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            error_trace = traceback.format_exc()
+            print("=== REGISTRATION ERROR ===")
+            print(error_trace)
+            return Response({"error": str(e), "trace": error_trace}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ✅ FIXED LOGIN VIEW (FINAL WORKING VERSION)
