@@ -95,7 +95,7 @@ class CreativeCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          "\$${creative.hourlyRate.toStringAsFixed(0)}/hr",
+                          "₱${creative.hourlyRate.toStringAsFixed(0)}/hr",
                           style: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFF10B981), // Emerald
                             fontWeight: FontWeight.bold,

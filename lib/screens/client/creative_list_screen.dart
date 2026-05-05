@@ -174,7 +174,7 @@ class _CreativeListScreenState extends State<CreativeListScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "\$${creative.hourlyRate.toStringAsFixed(0)}/hr", 
+                        "₱${creative.hourlyRate.toStringAsFixed(0)}/hr", 
                         style: GoogleFonts.plusJakartaSans(
                           color: const Color(0xFF10B981), // Green color for price
                           fontWeight: FontWeight.bold, 

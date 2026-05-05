@@ -158,7 +158,7 @@ class _CreativeDetailScreenState extends State<CreativeDetailScreen> with Single
               elevation: 0,
             ),
             child: Text(
-              "Book Now • \$${widget.creative.hourlyRate.toStringAsFixed(0)}/hr",
+              "Book Now • ₱${widget.creative.hourlyRate.toStringAsFixed(0)}/hr",
               style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
@@ -319,7 +319,7 @@ class _CreativeDetailScreenState extends State<CreativeDetailScreen> with Single
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "\$${product.price.toStringAsFixed(2)}",
+                            "₱${product.price.toStringAsFixed(2)}",
                             style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFF10B981)), 
                           ),
                         ],

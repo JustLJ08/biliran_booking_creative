@@ -836,113 +836,102 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       ],
     ),
   );
-}
-
-
-  // --- TAB 5: PROFILE ---
+   // --- TAB 5: PROFILE ---
  Widget _buildProfileTab() {
-  return SingleChildScrollView(
-    padding: const EdgeInsets.all(24),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
+  return SafeArea(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 32),
 
-        // Avatar
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFF4F46E5), width: 2),
+          // --- PROFILE AVATAR ---
+          CircleAvatar(
+            radius: 45,
+            backgroundColor: const Color(0xFFEEF2FF),
+            child: const Icon(Icons.person_rounded, size: 50, color: Color(0xFF4F46E5)),
           ),
-          child: const CircleAvatar(
-            radius: 50,
-            backgroundColor: Color(0xFFEEF2FF),
-            child: Icon(Icons.person, size: 50, color: Color(0xFF4F46E5)),
-          ),
-        ),
-        const SizedBox(height: 24),
 
-        // Title
-        Text(
-          "Provider Account",
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 16),
 
-        Text(
-          "Manage your account settings",
-          style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.grey),
-        ),
-        const SizedBox(height: 48),
-
-        // Options
-        _buildProfileOption(Icons.settings_outlined, "Account Settings"),
-        const SizedBox(height: 16),
-
-        _buildProfileOption(Icons.help_outline, "Help & Support"),
-        const SizedBox(height: 32),
-
-        // Logout button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _logout,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFEE2E2),
-              foregroundColor: const Color(0xFFEF4444),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 0,
-            ),
-            icon: const Icon(Icons.logout_rounded),
-            label: Text(
-              "Log Out",
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+          // --- PROFILE TITLE ---
+          Text(
+            "My Profile",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF111827),
             ),
           ),
-        ),
 
-        const SizedBox(height: 40),
-      ],
+          const SizedBox(height: 24),
+
+          // =====================================
+          //  MENU ITEMS
+          // =====================================
+
+          // --- EDIT PROFILE ---
+          ListTile(
+            leading: const Icon(Icons.edit_rounded, color: Color(0xFF4F46E5)),
+            title: Text("Edit Profile", style: GoogleFonts.plusJakartaSans()),
+            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+            onTap: () {},
+          ),
+
+          // --- ACCOUNT SETTINGS ---
+          ListTile(
+            leading: const Icon(Icons.settings_rounded, color: Color(0xFF4F46E5)),
+            title: Text("Account Settings", style: GoogleFonts.plusJakartaSans()),
+            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+            onTap: () {},
+          ),
+
+          // --- HELP & SUPPORT ---
+          ListTile(
+            leading: const Icon(Icons.help_outline_rounded, color: Color(0xFF4F46E5)),
+            title: Text("Help & Support", style: GoogleFonts.plusJakartaSans()),
+            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+            onTap: () {},
+          ),
+
+          const SizedBox(height: 60),
+
+          // =====================================
+          //  LOGOUT BUTTON (matching client style)
+          // =====================================
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _logout,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFEE2E2),
+                  foregroundColor: const Color(0xFFEF4444),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.logout_rounded),
+                label: Text(
+                  "Log Out",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
+}
 
 
-
-  // Helper for Profile Options
-  Widget _buildProfileOption(IconData icon, String title) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey[600]),
-          const SizedBox(width: 16),
-          Text(
-            title, 
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16, 
-              fontWeight: FontWeight.w600, 
-              color: const Color(0xFF374151)
-            )
-          ),
-          const Spacer(),
-          Icon(Icons.chevron_right, color: Colors.grey[400]),
-        ],
-      ),
-    );
-  }
 
   // --- WIDGET HELPERS ---
 

@@ -455,7 +455,7 @@ PROVIDER: {creative_name}
 The Provider agrees to perform services on {date} as requested.
 
 2. PAYMENT
-The Client agrees to pay the rate of ${price} per hour/day.
+The Client agrees to pay the rate of ₱{price} per hour/day.
 
 3. CANCELLATION
 Cancellations made less than 24 hours before the booking time may incur a fee.
