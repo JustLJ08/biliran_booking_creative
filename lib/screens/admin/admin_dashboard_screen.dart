@@ -1,7 +1,7 @@
 // lib/screens/admin/admin_dashboard_screen.dart
 // ignore_for_file: deprecated_member_use
 
-import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'package:flutter/foundation.dart';
 import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +12,17 @@ import '../../models/creative.dart';
 import '../../models/product.dart';
 import '../auth/login_screen.dart';
 
+// Theme constants — matches client/provider screens
+const _kPrimary = Color(0xFF4F46E5);
+const _kPrimaryDark = Color(0xFF4338CA);
+const _kPrimaryLight = Color(0xFFEEF2FF);
+const _kBg = Color(0xFFF9FAFB);
+const _kText = Color(0xFF111827);
+const _kTextSub = Color(0xFF6B7280);
+const _kSuccess = Color(0xFF10B981);
+const _kWarning = Color(0xFFF59E0B);
+const _kDanger = Color(0xFFEF4444);
+
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -19,12 +30,11 @@ class AdminDashboardScreen extends StatefulWidget {
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen>
-    with SingleTickerProviderStateMixin {
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   late Future<List<Creative>> _futurePending;
   late Future<List<Creative>> _futureVerified;
   late Future<List<Product>> _futureProducts;
-  late TabController _tabController;
+  int _selectedIndex = 0;
 
   // Search State
   String _searchQuery = "";
@@ -37,13 +47,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _loadData();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
@@ -80,7 +88,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               Icon(
                 isApprove ? Icons.verified_outlined : Icons.warning_amber_rounded,
                 size: 60,
-                color: isApprove ? Colors.green : Colors.redAccent,
+                color: isApprove ? _kSuccess : _kDanger,
               ),
               const SizedBox(height: 16),
               Text(
@@ -88,14 +96,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: _kText,
                 ),
               ),
               const SizedBox(height: 10),
               Text(
                 "Are you sure you want to ${isApprove ? 'approve' : 'remove'} $name?",
                 textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(color: Colors.grey[700]),
+                style: GoogleFonts.plusJakartaSans(color: _kTextSub),
               ),
               const SizedBox(height: 25),
               Row(
@@ -118,8 +126,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isApprove ? const Color(0xFF10B981) : Colors.redAccent,
+                        backgroundColor: isApprove ? _kSuccess : _kDanger,
                         foregroundColor: Colors.white,
                         elevation: 2,
                         shape: RoundedRectangleBorder(
@@ -179,7 +186,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ),
             ],
           ),
-          backgroundColor: isApprove ? const Color(0xFF10B981) : Colors.redAccent,
+          backgroundColor: isApprove ? _kSuccess : _kDanger,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(14),
           shape: RoundedRectangleBorder(
@@ -204,114 +211,94 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
 
 
+  String _getTitle() {
+    switch (_selectedIndex) {
+      case 0: return "Overview";
+      case 1: return "Pending Providers";
+      case 2: return "Verified Providers";
+      case 3: return "All Products";
+      default: return "";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F8),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, _) {
-          return [
-            SliverAppBar(
-              pinned: true,
-              floating: true,
-              snap: true,
-              elevation: 4,
-              backgroundColor: Colors.white,
-              expandedHeight: 70,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF6366F1),
-                      Color(0xFF4F46E5),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+      backgroundColor: _kBg,
+      appBar: AppBar(
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: GoogleFonts.plusJakartaSans(color: _kText, fontWeight: FontWeight.w500),
+                decoration: InputDecoration(
+                  hintText: "Search...",
+                  hintStyle: GoogleFonts.plusJakartaSans(color: _kTextSub),
+                  border: InputBorder.none,
                 ),
+                onChanged: _onSearchChanged,
+              )
+            : Text(
+                _getTitle(),
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: _kText),
               ),
-              title: _isSearching
-                  ? TextField(
-                      controller: _searchController,
-                      autofocus: true,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: "Search...",
-                        hintStyle: GoogleFonts.plusJakartaSans(
-                          color: Colors.white70,
-                        ),
-                        border: InputBorder.none,
-                      ),
-                      onChanged: _onSearchChanged,
-                    )
-                  : Text(
-                      "Admin Dashboard",
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    _isSearching ? Icons.close : Icons.search,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isSearching = !_isSearching;
-                      if (!_isSearching) {
-                        _searchQuery = "";
-                        _searchController.clear();
-                      }
-                    });
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  onPressed: _logout,
-                ),
-              ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(55),
-                child: Container(
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TabBar(
-                    controller: _tabController,
-                    indicator: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: Colors.white.withOpacity(0.25),
-                    ),
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white70,
-                    labelStyle: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    tabs: const [
-                      Tab(text: "Pending"),
-                      Tab(text: "Verified"),
-                      Tab(text: "Products"),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildTabWithStatsAndList(isPending: true),
-            _buildTabWithStatsAndList(isPending: false),
-            _buildTabWithStatsAndProducts(),
+        backgroundColor: Colors.white,
+        centerTitle: false,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: Colors.grey.shade200, height: 1.0),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search_rounded, color: _kTextSub, size: 22),
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchQuery = "";
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: _kTextSub),
+            onPressed: _logout,
+          ),
+        ],
+      ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          _buildOverviewTab(),
+          _buildTabWithStatsAndList(isPending: true),
+          _buildTabWithStatsAndList(isPending: false),
+          _buildTabWithStatsAndProducts(),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, -4))],
+        ),
+        child: BottomNavigationBar(
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Overview'),
+            BottomNavigationBarItem(icon: Icon(Icons.pending_actions_rounded), label: 'Pending'),
+            BottomNavigationBarItem(icon: Icon(Icons.verified_rounded), label: 'Verified'),
+            BottomNavigationBarItem(icon: Icon(Icons.inventory_2_rounded), label: 'Products'),
           ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: _kPrimary,
+          unselectedItemColor: Colors.grey.shade400,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedLabelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, fontSize: 12),
+          unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w500, fontSize: 12),
+          elevation: 0,
+          onTap: (i) => setState(() => _selectedIndex = i),
         ),
       ),
     );
@@ -319,25 +306,193 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
 Widget _buildEmptyState(String message, IconData icon) {
   return Container(
-    padding: const EdgeInsets.symmetric(vertical: 24),
+    padding: const EdgeInsets.symmetric(vertical: 48),
     alignment: Alignment.center,
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 56, color: Colors.grey[300]),
-        const SizedBox(height: 12),
-        Text(
-          message,
-          style: GoogleFonts.plusJakartaSans(
-            color: Colors.grey,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: _kPrimaryLight, shape: BoxShape.circle),
+          child: Icon(icon, size: 48, color: _kPrimary.withOpacity(0.5)),
         ),
+        const SizedBox(height: 16),
+        Text(message, style: GoogleFonts.plusJakartaSans(color: _kTextSub, fontSize: 14, fontWeight: FontWeight.w500)),
       ],
     ),
   );
 }
+
+  // ---------------------------------------------------------
+  //  OVERVIEW TAB — hero card + stats grid
+  // ---------------------------------------------------------
+  Widget _buildOverviewTab() {
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      color: _kPrimary,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hero Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [_kPrimary, _kPrimaryDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: _kPrimary.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Admin Panel", style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 8),
+                          Text("Platform Management", style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(16)),
+                        child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 28),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.shield_rounded, color: Colors.greenAccent, size: 16),
+                        const SizedBox(width: 4),
+                        Text("System Operational", style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Stats Grid
+            Row(
+              children: [
+                Expanded(
+                  child: _buildOverviewStatCard(
+                    title: "Pending",
+                    icon: Icons.pending_actions_rounded,
+                    future: _futurePending,
+                    color: _kWarning,
+                    onTap: () => setState(() => _selectedIndex = 1),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildOverviewStatCard(
+                    title: "Verified",
+                    icon: Icons.verified_rounded,
+                    future: _futureVerified,
+                    color: _kSuccess,
+                    onTap: () => setState(() => _selectedIndex = 2),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildOverviewStatCard(
+              title: "Total Products",
+              icon: Icons.inventory_2_rounded,
+              future: _futureProducts,
+              color: _kPrimary,
+              onTap: () => setState(() => _selectedIndex = 3),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Recent Pending
+            Text("Recent Pending", style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: _kText)),
+            const SizedBox(height: 12),
+            FutureBuilder<List<Creative>>(
+              future: _futurePending,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: _kPrimary)));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return _buildEmptyState("No pending providers", Icons.check_circle_outline_rounded);
+                }
+                final items = snapshot.data!.take(3).toList();
+                return Column(
+                  children: items.map((c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildProviderCard(c, true),
+                  )).toList(),
+                );
+              },
+            ),
+            const SizedBox(height: 80),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewStatCard({
+    required String title,
+    required IconData icon,
+    required Future<List<dynamic>> future,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return FutureBuilder<List<dynamic>>(
+      future: future,
+      builder: (context, snapshot) {
+        String count = snapshot.hasData ? "${snapshot.data!.length}" : "-";
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5))],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(height: 16),
+                Text(count, style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.bold, color: _kText)),
+                Text(title, style: GoogleFonts.plusJakartaSans(color: _kTextSub, fontSize: 13, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
 
   // ---------------------------------------------------------
@@ -346,7 +501,7 @@ Widget _buildEmptyState(String message, IconData icon) {
   Widget _buildTabWithStatsAndList({required bool isPending}) {
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: const Color(0xFF4F46E5),
+      color: _kPrimary,
       child: FutureBuilder<List<Creative>>(
         future: isPending ? _futurePending : _futureVerified,
         builder: (context, snapshot) {
@@ -428,7 +583,7 @@ Widget _buildEmptyState(String message, IconData icon) {
                       title: "Active Providers",
                       count: "$providers",
                       icon: Icons.people_alt_outlined,
-                      color: Colors.blue,
+                      color: _kPrimary,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -437,7 +592,7 @@ Widget _buildEmptyState(String message, IconData icon) {
                       title: "Total Products",
                       count: "$products",
                       icon: Icons.inventory_2_outlined,
-                      color: Colors.purple,
+                      color: _kPrimary,
                     ),
                   ),
                 ],
@@ -524,7 +679,7 @@ Widget _buildEmptyState(String message, IconData icon) {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: Colors.grey.shade100,
+                backgroundColor: _kPrimaryLight,
                 backgroundImage: creative.profileImageUrl != null
                     ? NetworkImage(fixImageUrl(creative.profileImageUrl!))
                     : null,
@@ -532,7 +687,7 @@ Widget _buildEmptyState(String message, IconData icon) {
                     ? Text(
                         fullName.isNotEmpty ? fullName[0].toUpperCase() : "U",
                         style: GoogleFonts.plusJakartaSans(
-                          color: Colors.deepPurple,
+                          color: _kPrimary,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
@@ -556,13 +711,13 @@ Widget _buildEmptyState(String message, IconData icon) {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.deepPurple.shade50,
+                        color: _kPrimaryLight,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         creative.subCategory.name,
                         style: GoogleFonts.plusJakartaSans(
-                          color: Colors.deepPurple,
+                          color: _kPrimary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -722,7 +877,7 @@ Widget _buildEmptyState(String message, IconData icon) {
   Widget _buildTabWithStatsAndProducts() {
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: const Color(0xFF4F46E5),
+      color: _kPrimary,
       child: FutureBuilder<List<Product>>(
         future: _futureProducts,
         builder: (context, snapshot) {
@@ -810,7 +965,7 @@ Widget _buildEmptyState(String message, IconData icon) {
                   Text(
                     "₱${product.price.toStringAsFixed(2)}",
                     style: GoogleFonts.plusJakartaSans(
-                      color: Colors.deepPurple,
+                      color: _kPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
