@@ -15,14 +15,18 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-change-this-key-for-p
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "True") == "True"
 #ALLOWED_HOSTS = ['*']
 ALLOWED_HOSTS = [
     'biliran-booking-creative.onrender.com',
     'www.biliran-booking-creative.onrender.com',
+    'biliran-booking-frontend.onrender.com',
     'localhost',
     '127.0.0.1',
 ]
+
+if 'RENDER_EXTERNAL_HOSTNAME' in os.environ:
+    ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
 
 
 # Application definition
@@ -78,26 +82,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ===============================================
-# POSTGRES - CONNECT TO NEON DATABASE
+# POSTGRES - DATABASE CONFIGURATION
 # ===============================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'creative_booking',    
-        'USER': 'neondb_owner',         
-        'PASSWORD': 'npg_kAJbVd9Rn3PH', # UPDATED: Matches the reset command above
-        'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
-        'PORT': '5432',             # Keep as 2524 (Correct Port)
+if 'DATABASE_URL' in os.environ:
+    # Use Render's database URL in production
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get("DATABASE_URL"),
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
-
-#DATABASES = {
-#    'default': dj_database_url.config(
-#        default=os.environ.get("DATABASE_URL"),
-#        conn_max_age=600,
-#        ssl_require=True
-#    )
-#}
+else:
+    # Local fallback to Neon database
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'creative_booking',    
+            'USER': 'neondb_owner',         
+            'PASSWORD': 'npg_kAJbVd9Rn3PH',
+            'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
+            'PORT': '5432',             
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -145,7 +152,12 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = ["https://biliran-booking-creative.onrender.com","http://127.0.0.1:8000",]
+# Added Flutter Web frontend Render URL to allow cross-origin requests
+CORS_ALLOWED_ORIGINS = [
+    "https://biliran-booking-creative.onrender.com",
+    "https://biliran-booking-frontend.onrender.com",
+    "http://127.0.0.1:8000",
+]
 
 #CORS_ALLOW_ALL_ORIGINS = True
 
