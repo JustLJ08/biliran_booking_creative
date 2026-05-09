@@ -52,6 +52,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   bool _isSearching = false;
   bool _showAllCategories = false;
+
+  // Recent Searches State
+  List<Map<String, dynamic>> _recentSearches = [];
+  bool _searchBarFocused = false;
+  final FocusNode _searchFocusNode = FocusNode();
   
   // State variable to track unread messages count
   int _unreadMsgCount = 0;
@@ -69,7 +74,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadFavorites(); // Load saved favorites on startup
+    _loadRecentSearches(); // Load recent searches on startup
     _refreshData();
+
+    _searchFocusNode.addListener(() {
+      if (mounted) {
+        setState(() => _searchBarFocused = _searchFocusNode.hasFocus);
+      }
+    });
 
     Timer.periodic(const Duration(seconds: 5), (_) {
   if (_selectedIndex == 3) {
@@ -77,6 +89,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 });
 
+  }
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   // --- PERSISTENCE LOGIC ---
@@ -150,6 +169,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _loadRecentSearches() async {
+    final data = await ApiService.fetchRecentSearches();
+    if (mounted) {
+      setState(() => _recentSearches = data);
+    }
+  }
+
   // --- INBOX HELPERS ---
   String _formatChatDate(String? dateStr) {
     if (dateStr == null) return "Now";
@@ -211,6 +237,29 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _searchResults = results);
     } catch (e) {
       print("Search error: $e");
+    }
+  }
+
+  /// Called when a user taps a search result — records the search for
+  /// recommendation engine and recent search display.
+  void _onSearchResultTapped(SubCategory subCategory) {
+    // Record the search with the subcategory for content-based recommendations
+    ApiService.saveSearchQuery(
+      _searchController.text.trim(),
+      subCategoryId: subCategory.id,
+    );
+    _loadRecentSearches(); // Refresh the recent list
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CreativeListScreen(subCategory: subCategory)),
+    );
+  }
+
+  void _clearSearchHistory() async {
+    await ApiService.clearSearchHistory();
+    if (mounted) {
+      setState(() => _recentSearches = []);
     }
   }
 
@@ -848,6 +897,8 @@ Widget _buildInboxTab() {
               _buildHeader(),
               if (_isSearching)
                 _buildSearchResults()
+              else if (_searchBarFocused && _searchController.text.isEmpty && _recentSearches.isNotEmpty)
+                _buildRecentSearchesSection()
               else ...[
                 const SizedBox(height: 32),
                 _buildCategoriesSection(),
@@ -1020,6 +1071,7 @@ Widget _buildInboxTab() {
                   ),
                   child: TextField(
                     controller: _searchController,
+                    focusNode: _searchFocusNode,
                     onChanged: _onSearchChanged,
                     style: GoogleFonts.plusJakartaSans(color: kTextPrimary, fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
@@ -1481,6 +1533,129 @@ Widget _buildInboxTab() {
     );
   }
 
+  // =========================================================
+  //  RECENT SEARCHES SECTION
+  // =========================================================
+  Widget _buildRecentSearchesSection() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.history_rounded, color: kTextSecondary, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Recent Searches",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: kTextPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: _clearSearchHistory,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    "Clear All",
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.red.shade400,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: _recentSearches.map((entry) {
+              final query = entry['query'] ?? '';
+              final subCatName = entry['sub_category_name'];
+
+              return InkWell(
+                onTap: () {
+                  _searchController.text = query;
+                  _onSearchChanged(query);
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        subCatName != null ? Icons.work_outline_rounded : Icons.search_rounded,
+                        size: 16,
+                        color: kPrimaryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        subCatName ?? query,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: kTextPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: kPrimaryLight,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.tips_and_updates_rounded, color: kPrimaryColor.withOpacity(0.6), size: 32),
+                const SizedBox(height: 8),
+                Text(
+                  "Your searches help personalize your recommendations",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: kPrimaryColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSearchResults() {
     if (_searchResults == null) return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: kPrimaryColor)));
     if (_searchResults!.isEmpty) {
@@ -1520,7 +1695,7 @@ Widget _buildInboxTab() {
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => CreativeListScreen(subCategory: subCategory)));
+                _onSearchResultTapped(subCategory);
               },
               child: Padding(
                 padding: const EdgeInsets.all(16),

@@ -354,6 +354,77 @@ static Future<void> logout() async {
   }
 
   // ===========================================================================
+  // SEARCH HISTORY (For Recent Searches & Content-Based Recommendations)
+  // ===========================================================================
+
+  /// Fetch the user's 20 most recent search queries.
+  static Future<List<Map<String, dynamic>>> fetchRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+    if (userId == null) return [];
+
+    final url = Uri.parse('$baseUrl/search-history/?user_id=$userId');
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      print("Error fetching recent searches: $e");
+    }
+    return [];
+  }
+
+  /// Record a search query. Optionally include the subcategory ID if the user
+  /// tapped a specific search result (this feeds the recommendation engine).
+  static Future<bool> saveSearchQuery(String query, {int? subCategoryId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+    if (userId == null) return false;
+
+    final url = Uri.parse('$baseUrl/search-history/');
+
+    try {
+      final body = <String, dynamic>{
+        'user_id': userId,
+        'query': query,
+      };
+      if (subCategoryId != null) {
+        body['sub_category_id'] = subCategoryId;
+      }
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print("Error saving search query: $e");
+      return false;
+    }
+  }
+
+  /// Clear all search history for the current user.
+  static Future<bool> clearSearchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+    if (userId == null) return false;
+
+    final url = Uri.parse('$baseUrl/search-history/?user_id=$userId');
+
+    try {
+      final response = await http.delete(url);
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error clearing search history: $e");
+      return false;
+    }
+  }
+
+  // ===========================================================================
   // BROWSING & SEARCH
   // ===========================================================================
 
