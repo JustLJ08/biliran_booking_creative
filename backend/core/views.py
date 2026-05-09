@@ -518,11 +518,20 @@ def admin_manage_creative(request, pk):
 # CHAT / MESSAGING VIEWSET
 # ==========================
 
+from datetime import timedelta
+from django.utils import timezone
+
+def cleanup_old_messages():
+    """Lazily deletes chat messages older than 30 days"""
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    ChatMessage.objects.filter(created_at__lt=thirty_days_ago).delete()
+
 class ChatMessageViewSet(viewsets.ModelViewSet):
     queryset = ChatMessage.objects.all()
     serializer_class = ChatMessageSerializer
 
     def get_queryset(self):
+        cleanup_old_messages() # Auto-delete old messages
         queryset = super().get_queryset()
         booking_id = self.kwargs.get('booking_id') or self.request.query_params.get('booking_id')
         
@@ -557,6 +566,7 @@ class ConversationMessagesView(APIView):
         ).order_by('-created_at')
 
     def get(self, request):
+        cleanup_old_messages() # Auto-delete old messages
         client_id = request.query_params.get('client_id')
         creative_user_id = request.query_params.get('creative_user_id')
 
