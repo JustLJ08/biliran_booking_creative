@@ -715,7 +715,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                         booking: booking, 
                         isProvider: true // <--- IMPORTANT: This flips the UI to Provider mode
                     )
-                ));
+                )).then((_) => _refreshData());
               },
               child: _buildBookingCard(booking)
             );

@@ -65,8 +65,8 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       final success = await ApiService.createProduct(
         _nameController.text,
         _descController.text,
-        double.parse(_priceController.text),
-        int.parse(_stockController.text),
+        double.tryParse(_priceController.text) ?? 0.0,
+        int.tryParse(_stockController.text) ?? 0,
         creativeId,
         _selectedImage,
       );
@@ -214,7 +214,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                     controller: _priceController, 
                     keyboardType: TextInputType.number, 
                     decoration: InputDecoration(
-                      labelText: "Price (\$)",
+                      labelText: "Price (₱)",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     )
                   ),
