@@ -329,6 +329,16 @@ class OrderList(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         product = serializer.validated_data["product"]
         quantity = serializer.validated_data["quantity"]
+        
+        # Prevent ordering if not enough stock
+        if product.stock < quantity:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": "Not enough stock available"})
+
+        # Decrement stock
+        product.stock -= quantity
+        product.save()
+
         total = product.price * quantity
         serializer.save(total_price=total)
 
@@ -597,6 +607,8 @@ class ConversationMessagesView(APIView):
                 {"error": "client_id, creative_user_id, sender, and message are required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        cleanup_old_messages() # Auto-delete old messages on post too
 
         bookings = self._get_bookings(client_id, creative_user_id)
         if not bookings.exists():
