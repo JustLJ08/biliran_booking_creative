@@ -205,21 +205,86 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
             const SizedBox(height: 30),
 
-            if (_currentStatus == 'pending' || (widget.isProvider && _currentStatus == 'confirmed'))
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _updateStatus('cancelled'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: Colors.redAccent),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    foregroundColor: Colors.redAccent,
-                  ),
-                  child: const Text("Cancel Booking"),
+            if (widget.isProvider) ...[
+              if (_currentStatus == 'pending')
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _updateStatus('cancelled'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          foregroundColor: Colors.redAccent,
+                        ),
+                        child: const Text("Decline Request"),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _updateStatus('confirmed'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text("Confirm Booking"),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-          ],
+              if (_currentStatus == 'confirmed')
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _updateStatus('cancelled'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          foregroundColor: Colors.redAccent,
+                        ),
+                        child: const Text("Cancel Booking"),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _updateStatus('completed'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text("Complete Booking"),
+                      ),
+                    ),
+                  ],
+                ),
+            ] else ...[
+              // Client View
+              if (_currentStatus == 'pending')
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => _updateStatus('cancelled'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Colors.redAccent),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      foregroundColor: Colors.redAccent,
+                    ),
+                    child: const Text("Cancel Booking"),
+                  ),
+                ),
+            ],
         ),
       ),
       bottomNavigationBar: Container(

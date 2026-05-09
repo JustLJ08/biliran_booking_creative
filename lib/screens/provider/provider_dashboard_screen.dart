@@ -1021,44 +1021,28 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         ),
         const SizedBox(height: 16),
         
-        // PENDING ACTIONS
-        if (isPending) Row(children: [
-          Expanded(child: OutlinedButton(
-            onPressed: () => _updateStatus(booking.id!, 'cancelled'), 
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 12)
-            ), 
-            child: const Text("Decline")
-          )),
-          const SizedBox(width: 12),
-          Expanded(child: ElevatedButton(
-            onPressed: () => _updateStatus(booking.id!, 'confirmed'), 
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4F46E5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              elevation: 0,
-            ), 
-            child: const Text("Accept")
-          )),
-        ]),
-
-        // CONFIRMED ACTIONS
-        if (isConfirmed) 
+        // ACTIONS (Redirect to Detail Screen)
+        if (isPending || isConfirmed) 
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => _updateStatus(booking.id!, 'cancelled'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => BookingDetailScreen(
+                        booking: booking, 
+                        isProvider: true
+                    )
+                )).then((_) => _refreshData()); // Refresh after back
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isPending ? const Color(0xFF4F46E5) : Colors.white,
+                foregroundColor: isPending ? Colors.white : const Color(0xFF4F46E5),
+                side: isPending ? BorderSide.none : const BorderSide(color: Color(0xFF4F46E5)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(vertical: 12)
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                elevation: 0,
               ),
-              child: const Text("Cancel Booking"),
+              child: Text(isPending ? "Review Request" : "View Details"),
             ),
           ),
       ]),

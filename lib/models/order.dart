@@ -35,10 +35,10 @@ class Order {
       totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
       status: json['status'] ?? 'pending',
       clientName: client,
-      // Format date string if present
-      date: json['created_at'] != null 
+      // Format date string if present safely
+      date: (json['created_at'] != null && json['created_at'].toString().length >= 10)
           ? json['created_at'].toString().substring(0, 10) 
-          : '',
+          : json['created_at']?.toString() ?? '',
     );
   }
 }
