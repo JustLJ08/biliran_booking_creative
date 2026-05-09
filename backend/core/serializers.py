@@ -1,5 +1,5 @@
 from rest_framework import serializers # type: ignore
-from .models import User, IndustryCategory, SubCategory, CreativeProfile, Booking, ServicePackage, Product, Order , Contract, ChatMessage
+from .models import User, IndustryCategory, SubCategory, CreativeProfile, Booking, ServicePackage, Product, Order , Contract, ChatMessage, SearchHistory
 
 # --- NEW: Registration Serializer ---
 class RegisterSerializer(serializers.ModelSerializer):
@@ -210,3 +210,16 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         
         # FIX: Make booking read-only so the serializer doesn't complain it's missing from the body
         read_only_fields = ['booking', 'created_at']
+
+
+# ===========================================
+#  SEARCH HISTORY SERIALIZER
+# ===========================================
+
+class SearchHistorySerializer(serializers.ModelSerializer):
+    sub_category_name = serializers.CharField(source='sub_category.name', read_only=True, default=None)
+
+    class Meta:
+        model = SearchHistory
+        fields = ['id', 'user', 'query', 'sub_category', 'sub_category_name', 'created_at']
+        read_only_fields = ['created_at']

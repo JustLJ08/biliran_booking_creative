@@ -23,6 +23,8 @@ from .views import (
     check_creative_verified,
     # Conversation View
     ConversationMessagesView,
+    # Search History
+    SearchHistoryView,
 )
 
 # 1. Create a Router
@@ -59,6 +61,9 @@ urlpatterns = [
     # Recommendations & Interests
     path('save-interests/', save_user_interests, name='save-interests'),
     path('creatives/recommended/', recommended_creatives, name='recommended-creatives'),
+
+    # Search History
+    path('search-history/', SearchHistoryView.as_view(), name='search-history'),
 
     # Products & Orders (E-commerce)
     path('products/', ProductList.as_view(), name='product-list'),

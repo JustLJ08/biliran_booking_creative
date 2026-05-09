@@ -209,3 +209,31 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"Message by {self.sender.username} in Booking #{self.booking.id}"
+
+
+# 11. Search History (For Recent Searches & Content-Based Recommendations)
+class SearchHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='search_history')
+    query = models.CharField(max_length=255)
+    sub_category = models.ForeignKey(
+        SubCategory, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='search_hits',
+        help_text="Populated when the user taps a specific search result."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = "Search Histories"
+
+    def __str__(self):
+        return f"{self.user.username} searched '{self.query}'"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Keep only the 20 most recent entries per user
+        entries = SearchHistory.objects.filter(user=self.user).order_by('-created_at')
+        if entries.count() > 20:
+            old_ids = entries.values_list('id', flat=True)[20:]
+            SearchHistory.objects.filter(id__in=list(old_ids)).delete()

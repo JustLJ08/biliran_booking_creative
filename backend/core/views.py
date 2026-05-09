@@ -12,13 +12,13 @@ from .utils import send_otp_email
 from .models import (
     User, Contract, IndustryCategory, SubCategory, CreativeProfile,
     Booking, Product, Order, ServicePackage, EmailOTP,
-    UserInterest, UserPreferences, ChatMessage
+    UserInterest, UserPreferences, ChatMessage, SearchHistory
 )
 from .serializers import (
     ContractSerializer, RegisterSerializer, IndustryCategorySerializer,
     SubCategorySerializer, CreativeProfileSerializer, BookingSerializer,
     ProductSerializer, OrderSerializer, ServicePackageSerializer,
-    ChatMessageSerializer
+    ChatMessageSerializer, SearchHistorySerializer
 )
 
 # ==========================
@@ -420,19 +420,117 @@ def save_user_interests(request):
 
 @api_view(['GET'])
 def recommended_creatives(request):
+    """Content-based recommendation combining 3 signals:
+    1. Explicit preferences (UserInterest) — highest weight
+    2. Search behavior (SearchHistory) — medium weight
+    3. Booking history (Booking) — fallback weight
+    """
     user_id = request.query_params.get('user_id')
 
     if not user_id:
         return Response([], status=200)
 
-    interested_sub_ids = UserInterest.objects.filter(user_id=user_id).values_list('sub_category_id', flat=True)
+    # Signal 1: Explicit preferences (user-selected subcategories)
+    interest_sub_ids = set(
+        UserInterest.objects.filter(user_id=user_id)
+        .values_list('sub_category_id', flat=True)
+    )
 
-    if not interested_sub_ids:
+    # Signal 2: Search behavior (subcategories from recent search taps)
+    search_sub_ids = set(
+        SearchHistory.objects.filter(user_id=user_id, sub_category__isnull=False)
+        .values_list('sub_category_id', flat=True)
+    )
+
+    # Signal 3: Booking history (subcategories of previously booked creatives)
+    booking_sub_ids = set(
+        Booking.objects.filter(client_id=user_id)
+        .values_list('creative__sub_category_id', flat=True)
+    )
+
+    # Merge all signals (union)
+    all_sub_ids = interest_sub_ids | search_sub_ids | booking_sub_ids
+
+    if not all_sub_ids:
         return Response([], status=200)
 
-    creatives = CreativeProfile.objects.filter(sub_category_id__in=interested_sub_ids).exclude(user_id=user_id)
-    serializer = CreativeProfileSerializer(creatives, many=True, context={'request': request})
+    # Fetch matching verified creatives, excluding the user themselves
+    creatives = (
+        CreativeProfile.objects
+        .filter(sub_category_id__in=all_sub_ids, is_verified=True)
+        .exclude(user_id=user_id)
+        .select_related('user', 'sub_category', 'sub_category__industry')
+        .distinct()
+    )
+
+    # Rank: creatives matching more signals appear first
+    def rank_score(creative):
+        score = 0
+        sid = creative.sub_category_id
+        if sid in interest_sub_ids:
+            score += 3  # Highest weight
+        if sid in search_sub_ids:
+            score += 2  # Medium weight
+        if sid in booking_sub_ids:
+            score += 1  # Fallback weight
+        return score
+
+    ranked = sorted(creatives, key=rank_score, reverse=True)
+
+    serializer = CreativeProfileSerializer(ranked, many=True, context={'request': request})
     return Response(serializer.data, status=200)
+
+
+# =========================================================
+#  SEARCH HISTORY
+# =========================================================
+
+class SearchHistoryView(APIView):
+    """Manages per-user search history for recent searches & recommendation signals.
+    GET    ?user_id=X              → 20 most recent searches (distinct queries)
+    POST   {user_id, query, sub_category_id?} → record a search
+    DELETE ?user_id=X              → clear all search history
+    """
+
+    def get(self, request):
+        user_id = request.query_params.get('user_id')
+        if not user_id:
+            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        entries = SearchHistory.objects.filter(user_id=user_id).order_by('-created_at')[:20]
+        serializer = SearchHistorySerializer(entries, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        query_text = request.data.get('query', '').strip()
+        sub_category_id = request.data.get('sub_category_id')
+
+        if not user_id or not query_text:
+            return Response(
+                {"error": "user_id and query are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Avoid duplicate consecutive identical queries
+        latest = SearchHistory.objects.filter(user_id=user_id).first()
+        if latest and latest.query.lower() == query_text.lower():
+            return Response({"message": "Duplicate skipped"}, status=200)
+
+        SearchHistory.objects.create(
+            user_id=user_id,
+            query=query_text,
+            sub_category_id=sub_category_id if sub_category_id else None,
+        )
+        return Response({"message": "Search recorded"}, status=status.HTTP_201_CREATED)
+
+    def delete(self, request):
+        user_id = request.query_params.get('user_id')
+        if not user_id:
+            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        count, _ = SearchHistory.objects.filter(user_id=user_id).delete()
+        return Response({"message": f"Cleared {count} entries"}, status=200)
 
 
 # ==========================
