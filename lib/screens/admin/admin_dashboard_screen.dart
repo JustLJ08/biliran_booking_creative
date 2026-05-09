@@ -970,6 +970,14 @@ Widget _buildEmptyState(String message, IconData icon) {
                       fontSize: 15,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Stock: ${product.stock}",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: product.stock > 0 ? Colors.grey.shade600 : Colors.red,
+                    ),
+                  ),
                 ],
               ),
             ),
