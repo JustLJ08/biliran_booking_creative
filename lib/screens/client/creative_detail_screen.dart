@@ -29,6 +29,12 @@ class _CreativeDetailScreenState extends State<CreativeDetailScreen> with Single
 
 
   void _buyProduct(Product product) async {
+    if (product.stock <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("This product is out of stock!"), backgroundColor: Colors.red),
+      );
+      return;
+    }
     bool success = await ApiService.createOrder(product.id, 1);
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -330,6 +336,11 @@ class _CreativeDetailScreenState extends State<CreativeDetailScreen> with Single
                           Text(
                             "₱${product.price.toStringAsFixed(2)}",
                             style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFF10B981)), 
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Stock: ${product.stock}",
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: product.stock > 0 ? const Color(0xFF6B7280) : Colors.red),
                           ),
                         ],
                       ),

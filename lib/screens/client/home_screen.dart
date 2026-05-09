@@ -216,6 +216,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- E-COMMERCE ORDER LOGIC ---
   void _showOrderDialog(Product product) {
+    if (product.stock <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("This product is out of stock!"), backgroundColor: Colors.red));
+      return;
+    }
     int quantity = 1;
     bool isAgreed = false; 
 
@@ -1460,6 +1464,10 @@ Widget _buildInboxTab() {
                         Text(
                           "₱${product.price.toStringAsFixed(2)}",
                           style: GoogleFonts.plusJakartaSans(color: kTextPrimary, fontWeight: FontWeight.w800, fontSize: 15),
+                        ),
+                        Text(
+                          "Stock: ${product.stock}",
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: product.stock > 0 ? kTextSecondary : Colors.red, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),

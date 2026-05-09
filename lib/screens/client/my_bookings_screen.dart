@@ -340,7 +340,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                   booking: booking, 
                 ),
               ),
-            );
+            ).then((_) => _loadBookings());
           },
           borderRadius: BorderRadius.circular(16),
           child: IntrinsicHeight(
