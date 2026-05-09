@@ -102,6 +102,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     // Price display with Peso sign
     final double rawPrice = widget.booking.price ?? 1500.00;
     final String displayCost = rawPrice.toStringAsFixed(2);
+    final String depositCost = (rawPrice * 0.3).toStringAsFixed(2);
+    final String balanceCost = (rawPrice * 0.7).toStringAsFixed(2);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -161,6 +163,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   _buildDetailRow(icon: Icons.access_time_rounded, label: "Time", value: widget.booking.time),
                   const SizedBox(height: 16),
                   _buildDetailRow(symbol: '₱', label: "Total Cost", value: displayCost),
+                  const SizedBox(height: 16),
+                  _buildDetailRow(symbol: '₱', label: "30% Down Payment (Due Now)", value: depositCost),
+                  const SizedBox(height: 16),
+                  _buildDetailRow(symbol: '₱', label: "70% Balance (On Spot)", value: balanceCost),
                 ],
               ),
             ),
@@ -232,7 +238,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
-                        child: const Text("Confirm Booking"),
+                        child: const Text("Confirm (30% Received)", style: TextStyle(fontSize: 13)),
                       ),
                     ),
                   ],
@@ -263,14 +269,28 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
-                        child: const Text("Complete Booking"),
+                        child: const Text("Complete (70% Received)", style: TextStyle(fontSize: 13)),
                       ),
                     ),
                   ],
                 ),
             ] else ...[
               // Client View
-              if (_currentStatus == 'pending')
+              if (_currentStatus == 'pending') ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.shade200)),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Colors.orange.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text("Please message the provider to send your 30% down payment receipt (₱ $depositCost). The provider will confirm your slot once received.", style: GoogleFonts.plusJakartaSans(color: Colors.orange.shade900, fontSize: 13, height: 1.5)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
@@ -284,7 +304,24 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     child: const Text("Cancel Booking"),
                   ),
                 ),
+              ],
+              if (_currentStatus == 'confirmed') ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.shade200)),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded, color: Colors.green.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text("Booking Confirmed! Your slot is secured. Please prepare the remaining 70% balance (₱ $balanceCost) to be paid on the spot.", style: GoogleFonts.plusJakartaSans(color: Colors.green.shade900, fontSize: 13, height: 1.5)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
+          ],
         ),
       ),
       bottomNavigationBar: Container(
