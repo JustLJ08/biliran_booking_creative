@@ -563,6 +563,31 @@ static Future<void> logout() async {
     }
   }
 
+  static Future<bool> uploadBookingProof(int bookingId, XFile proofImage) async {
+    final url = Uri.parse('$baseUrl/bookings/$bookingId/upload-proof/');
+    try {
+      var request = http.MultipartRequest('PUT', url);
+      
+      final bytes = await proofImage.readAsBytes();
+      final ext = proofImage.name.split('.').last;
+      
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'payment_proof',
+          bytes,
+          filename: 'proof.$ext',
+          contentType: _getMimeType(proofImage.name),
+        ),
+      );
+
+      var response = await request.send();
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Upload Proof Error: $e");
+      return false;
+    }
+  }
+
   static Future<bool> updateBookingStatus(int bookingId, String status) async {
     final url = Uri.parse('$baseUrl/bookings/$bookingId/');
     try {

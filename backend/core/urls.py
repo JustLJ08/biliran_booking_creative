@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     RegisterView, LoginView,
     IndustryList, SubCategoryList, CreativeList,
-    BookingCreate, BookingList, BookingDetail,
+    BookingCreate, BookingList, BookingDetail, UploadBookingProof,
     CreateCreativeProfile, CreativeProfileDetail,
     ProductList, ProductDetail, 
     OrderList, OrderDetail, 
@@ -79,6 +79,7 @@ urlpatterns = [
     path('bookings/', BookingCreate.as_view(), name='booking-create'),
     path('my-bookings/', BookingList.as_view(), name='booking-list'),
     path('bookings/<int:pk>/', BookingDetail.as_view(), name='booking-detail'),
+    path('bookings/<int:pk>/upload-proof/', UploadBookingProof.as_view(), name='booking-upload-proof'),
 
     # Profile
     path('create-profile/', CreateCreativeProfile.as_view(), name='create-profile'),

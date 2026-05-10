@@ -84,6 +84,8 @@ class CreativeProfile(models.Model):
 class Booking(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('deposit_uploaded', 'Deposit Uploaded'),
         ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
@@ -99,6 +101,8 @@ class Booking(models.Model):
     
     project_type = models.CharField(max_length=50, default='Hourly')
     requirements = models.TextField()
+    
+    payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)

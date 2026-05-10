@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/booking.dart';
 import '../../services/api_service.dart'; 
 import 'chat_screen.dart';
@@ -25,6 +26,30 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   void initState() {
     super.initState();
     _currentStatus = widget.booking.status ?? 'pending';
+  }
+
+  bool _isUploading = false;
+
+  Future<void> _uploadProof() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      setState(() => _isUploading = true);
+      final success = await ApiService.uploadBookingProof(widget.booking.id!, image);
+      setState(() => _isUploading = false);
+      
+      if (success) {
+        setState(() => _currentStatus = 'deposit_uploaded');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Proof of payment uploaded successfully!"), backgroundColor: Colors.green),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to upload proof."), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _updateStatus(String newStatus) async {
@@ -230,7 +255,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => _updateStatus('confirmed'),
+                        onPressed: () => _updateStatus('accepted'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4F46E5),
                           foregroundColor: Colors.white,
@@ -238,11 +263,67 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
-                        child: const Text("Confirm (30% Received)", style: TextStyle(fontSize: 13)),
+                        child: const Text("Accept Request", style: TextStyle(fontSize: 13)),
                       ),
                     ),
                   ],
                 ),
+              if (_currentStatus == 'accepted')
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.shade200)),
+                  child: Row(
+                    children: [
+                      Icon(Icons.access_time_rounded, color: Colors.orange.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text("Waiting for the client to upload their 30% deposit proof.", style: GoogleFonts.plusJakartaSans(color: Colors.orange.shade900, fontSize: 13, height: 1.5)),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_currentStatus == 'deposit_uploaded') ...[
+                if (widget.booking.paymentProofUrl != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      image: DecorationImage(image: NetworkImage(widget.booking.paymentProofUrl!), fit: BoxFit.cover),
+                    ),
+                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _updateStatus('accepted'), // send back to accepted
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          foregroundColor: Colors.redAccent,
+                        ),
+                        child: const Text("Reject Proof"),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _updateStatus('confirmed'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text("Confirm 30% Received", style: TextStyle(fontSize: 12)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (_currentStatus == 'confirmed')
                 Row(
                   children: [
@@ -279,13 +360,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               if (_currentStatus == 'pending') ...[
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.shade200)),
+                  decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, color: Colors.orange.shade700),
+                      Icon(Icons.hourglass_empty_rounded, color: Colors.grey.shade700),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text("Please message the provider to send your 30% down payment receipt (₱ $depositCost). The provider will confirm your slot once received.", style: GoogleFonts.plusJakartaSans(color: Colors.orange.shade900, fontSize: 13, height: 1.5)),
+                        child: Text("Waiting for the provider to accept your request.", style: GoogleFonts.plusJakartaSans(color: Colors.grey.shade900, fontSize: 13, height: 1.5)),
                       ),
                     ],
                   ),
@@ -302,6 +383,61 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       foregroundColor: Colors.redAccent,
                     ),
                     child: const Text("Cancel Booking"),
+                  ),
+                ),
+              ],
+              if (_currentStatus == 'accepted') ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.shade200)),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Colors.orange.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text("Provider accepted! Please upload your 30% down payment receipt (₱ $depositCost) to secure your slot.", style: GoogleFonts.plusJakartaSans(color: Colors.orange.shade900, fontSize: 13, height: 1.5)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isUploading ? null : _uploadProof,
+                    icon: _isUploading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.upload_file_rounded),
+                    label: Text(_isUploading ? "Uploading..." : "Upload Proof of Payment"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4F46E5),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+              if (_currentStatus == 'deposit_uploaded') ...[
+                if (widget.booking.paymentProofUrl != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      image: DecorationImage(image: NetworkImage(widget.booking.paymentProofUrl!), fit: BoxFit.cover),
+                    ),
+                  ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.shade200)),
+                  child: Row(
+                    children: [
+                      Icon(Icons.access_time_rounded, color: Colors.blue.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text("Deposit receipt uploaded. Awaiting provider verification to confirm your booking.", style: GoogleFonts.plusJakartaSans(color: Colors.blue.shade900, fontSize: 13, height: 1.5)),
+                      ),
+                    ],
                   ),
                 ),
               ],

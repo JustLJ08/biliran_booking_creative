@@ -278,6 +278,26 @@ class BookingDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
 
+class UploadBookingProof(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+
+    def put(self, request, pk):
+        try:
+            booking = Booking.objects.get(pk=pk)
+            
+            if 'payment_proof' in request.FILES:
+                booking.payment_proof = request.FILES['payment_proof']
+                booking.status = 'deposit_uploaded'
+                booking.save()
+                
+                serializer = BookingSerializer(booking, context={'request': request})
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'No image provided.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Booking.DoesNotExist:
+            return Response({'error': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
+
 
 # ==========================
 # PRODUCT & ORDER VIEWS

@@ -166,6 +166,7 @@ class BookingSerializer(serializers.ModelSerializer):
     creative_role = serializers.CharField(source='creative.sub_category.name', read_only=True)
     creative_user_id = serializers.IntegerField(source='creative.user.id', read_only=True)
     client_name = serializers.CharField(source='client.username', read_only=True)
+    payment_proof_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -173,8 +174,26 @@ class BookingSerializer(serializers.ModelSerializer):
             'id', 'client', 'client_name',
             'creative', 'creative_name', 'creative_role', 'creative_user_id',
             'booking_date', 'booking_time', 'project_type',
-            'requirements', 'status', 'created_at'
+            'requirements', 'status', 'created_at', 'payment_proof_url'
         ]
+
+    def get_payment_proof_url(self, obj):
+        request = self.context.get('request')
+        if obj.payment_proof:
+            try:
+                url = obj.payment_proof.url
+                if url.startswith('http') and 'cloudinary.com' in url:
+                    return url
+                if url.startswith('http'):
+                    return url
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Error getting payment proof URL for Booking {obj.id}: {e}")
+                return None
+        return None
 
 class ContractSerializer(serializers.ModelSerializer):
     class Meta:

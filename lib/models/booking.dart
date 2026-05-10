@@ -15,6 +15,7 @@ class Booking {
   final String? clientName; 
   final int? clientId;   
   final double? price;   
+  final String? paymentProofUrl;
 
   Booking({
     this.id,
@@ -30,6 +31,7 @@ class Booking {
     this.clientName,
     this.clientId, 
     this.price,    
+    this.paymentProofUrl,
   });
 
   Map<String, dynamic> toJson() {
@@ -59,6 +61,8 @@ class Booking {
       
       // --- FIX: Map the Client ID ---
       clientId: json['client_id'] ?? json['user'] ?? json['client'], 
+      
+      paymentProofUrl: json['payment_proof_url'],
 
       // --- FIX: Force a price if the API sends null (Fixes "On Quote") ---
       price: json['price'] != null 
