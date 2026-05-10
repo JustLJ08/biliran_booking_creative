@@ -563,28 +563,43 @@ static Future<void> logout() async {
     }
   }
 
-  static Future<bool> uploadBookingProof(int bookingId, XFile proofImage) async {
+  static Future<String?> uploadBookingProof(int bookingId, XFile proofImage) async {
     final url = Uri.parse('$baseUrl/bookings/$bookingId/upload-proof/');
     try {
       var request = http.MultipartRequest('PUT', url);
       
-      final bytes = await proofImage.readAsBytes();
-      final ext = proofImage.name.split('.').last;
-      
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'payment_proof',
-          bytes,
-          filename: 'proof.$ext',
-          contentType: _getMimeType(proofImage.name),
-        ),
-      );
+      if (kIsWeb) {
+        final bytes = await proofImage.readAsBytes();
+        final ext = proofImage.name.split('.').last;
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'payment_proof',
+            bytes,
+            filename: 'proof.$ext',
+            contentType: _getMimeType(proofImage.name),
+          ),
+        );
+      } else {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'payment_proof',
+            proofImage.path,
+            contentType: _getMimeType(proofImage.name),
+          ),
+        );
+      }
 
-      var response = await request.send();
-      return response.statusCode == 200;
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['payment_proof_url'];
+      }
+      return null;
     } catch (e) {
       print("Upload Proof Error: $e");
-      return false;
+      return null;
     }
   }
 

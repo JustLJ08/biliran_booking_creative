@@ -21,11 +21,13 @@ class BookingDetailScreen extends StatefulWidget {
 
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
   late String _currentStatus;
+  String? _paymentProofUrl;
 
   @override
   void initState() {
     super.initState();
     _currentStatus = widget.booking.status ?? 'pending';
+    _paymentProofUrl = widget.booking.paymentProofUrl;
   }
 
   bool _isUploading = false;
@@ -36,11 +38,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     
     if (image != null) {
       setState(() => _isUploading = true);
-      final success = await ApiService.uploadBookingProof(widget.booking.id!, image);
+      final newUrl = await ApiService.uploadBookingProof(widget.booking.id!, image);
       setState(() => _isUploading = false);
       
-      if (success) {
-        setState(() => _currentStatus = 'deposit_uploaded');
+      if (newUrl != null) {
+        setState(() {
+          _currentStatus = 'deposit_uploaded';
+          _paymentProofUrl = newUrl;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Proof of payment uploaded successfully!"), backgroundColor: Colors.green),
         );
@@ -283,14 +288,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   ),
                 ),
               if (_currentStatus == 'deposit_uploaded') ...[
-                if (widget.booking.paymentProofUrl != null)
+                if (_paymentProofUrl != null)
                   Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     width: double.infinity,
                     height: 200,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      image: DecorationImage(image: NetworkImage(widget.booking.paymentProofUrl!), fit: BoxFit.cover),
+                      image: DecorationImage(image: NetworkImage(_paymentProofUrl!), fit: BoxFit.cover),
                     ),
                   ),
                 Row(
@@ -417,14 +422,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 ),
               ],
               if (_currentStatus == 'deposit_uploaded') ...[
-                if (widget.booking.paymentProofUrl != null)
+                if (_paymentProofUrl != null)
                   Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     width: double.infinity,
                     height: 200,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      image: DecorationImage(image: NetworkImage(widget.booking.paymentProofUrl!), fit: BoxFit.cover),
+                      image: DecorationImage(image: NetworkImage(_paymentProofUrl!), fit: BoxFit.cover),
                     ),
                   ),
                 Container(
