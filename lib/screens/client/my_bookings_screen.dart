@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../models/booking.dart';
 import '../../services/api_service.dart';
 import '../shared/booking_detail_screen.dart'; 
+import '../../widgets/upload_proof_bottom_sheet.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -69,19 +70,18 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     }
   }
 
-  // Placeholder for sending receipt logic
+  // Open the Upload Proof Bottom Sheet
   void _handleSendReceipt(int bookingId) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.upload_file, color: Colors.white),
-            SizedBox(width: 10),
-            Text("Opening file picker..."),
-          ],
-        ),
-        backgroundColor: _primaryColor,
-        behavior: SnackBarBehavior.floating,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => UploadProofBottomSheet(
+        bookingId: bookingId,
+        onUploadSuccess: (newUrl) {
+          // Refresh the bookings list when upload succeeds
+          _loadBookings();
+        },
       ),
     );
   }

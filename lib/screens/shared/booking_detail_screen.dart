@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import '../../models/booking.dart';
 import '../../services/api_service.dart'; 
 import 'chat_screen.dart';
+import '../../widgets/upload_proof_bottom_sheet.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final Booking booking;
@@ -30,31 +32,21 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     _paymentProofUrl = widget.booking.paymentProofUrl;
   }
 
-  bool _isUploading = false;
-
-  Future<void> _uploadProof() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (image != null) {
-      setState(() => _isUploading = true);
-      final newUrl = await ApiService.uploadBookingProof(widget.booking.id!, image);
-      setState(() => _isUploading = false);
-      
-      if (newUrl != null) {
-        setState(() {
-          _currentStatus = 'deposit_uploaded';
-          _paymentProofUrl = newUrl;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Proof of payment uploaded successfully!"), backgroundColor: Colors.green),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to upload proof."), backgroundColor: Colors.red),
-        );
-      }
-    }
+  void _showUploadProofModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => UploadProofBottomSheet(
+        bookingId: widget.booking.id!,
+        onUploadSuccess: (newUrl) {
+          setState(() {
+            _currentStatus = 'deposit_uploaded';
+            _paymentProofUrl = newUrl;
+          });
+        },
+      ),
+    );
   }
 
   Future<void> _updateStatus(String newStatus) async {
@@ -409,9 +401,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: _isUploading ? null : _uploadProof,
-                    icon: _isUploading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.upload_file_rounded),
-                    label: Text(_isUploading ? "Uploading..." : "Upload Proof of Payment"),
+                    onPressed: _showUploadProofModal,
+                    icon: const Icon(Icons.upload_file_rounded),
+                    label: const Text("Upload Proof of Payment"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4F46E5),
                       foregroundColor: Colors.white,
