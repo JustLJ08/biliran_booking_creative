@@ -9,6 +9,7 @@ import '../../models/order.dart';
 import '../../models/product.dart';
 import '../auth/login_screen.dart';
 import 'create_product_screen.dart';
+import 'create_package_screen.dart';
 import '../shared/chat_screen.dart'; 
 import '../shared/booking_detail_screen.dart'; 
 
@@ -95,6 +96,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   late Future<List<Booking>> _futureAllBookings;
   late Future<List<Order>> _futureOrders;
   late Future<List<Product>> _futureProducts;
+  late Future<List<Map<String, dynamic>>> _futurePackages;
 
   // State variable to track message count for Badge
   int _unreadMsgCount = 0;
@@ -126,6 +128,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
       _futureOrders = ApiService.fetchProviderOrders();
       _futureProducts = _fetchProductsChain();
+      _futurePackages = _fetchPackagesChain();
 
       // Update badge count based on ALL bookings (pending + confirmed)
       _futureAllBookings.then((bookings) {
@@ -148,6 +151,18 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       }
     } catch (e) {
       debugPrint("Error fetching products: $e");
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchPackagesChain() async {
+    try {
+      final int? id = await ApiService.getMyCreativeId();
+      if (id != null) {
+        return await ApiService.fetchServicePackages(id);
+      }
+    } catch (e) {
+      debugPrint("Error fetching packages: $e");
     }
     return [];
   }
@@ -246,6 +261,45 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     }
   }
 
+  Future<void> _deletePackage(Map<String, dynamic> package) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Package", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+        content: Text("Are you sure you want to delete '${package['title']}'?", style: GoogleFonts.plusJakartaSans()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      bool success = await ApiService.deleteServicePackage(package['id']);
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Package deleted successfully"), backgroundColor: Colors.green),
+          );
+          _refreshData();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to delete package"), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
   void _logout() async {
     await ApiService.logout();
     if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
@@ -333,18 +387,74 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
           onTap: (index) => setState(() => _selectedIndex = index),
         ),
       ),
-      floatingActionButton: _selectedIndex == 0 ? FloatingActionButton.extended(
-        onPressed: () {
+      floatingActionButton: _selectedIndex == 0
+          ? _buildFabMenu()
+          : null,
+    );
+  }
+
+  Widget _buildFabMenu() {
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'product') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const CreateProductScreen()),
+            MaterialPageRoute(builder: (_) => const CreateProductScreen()),
           ).then((_) => _refreshData());
-        },
-        label: Text("New Product", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+        } else if (value == 'package') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreatePackageScreen()),
+          ).then((_) => _refreshData());
+        }
+      },
+      offset: const Offset(0, -120),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
+      elevation: 8,
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'product',
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.inventory_2_rounded, color: Colors.blue.shade600, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text("New Product", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, fontSize: 14)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'package',
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.design_services_rounded, color: Colors.purple.shade600, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text("New Package", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, fontSize: 14)),
+            ],
+          ),
+        ),
+      ],
+      child: FloatingActionButton.extended(
+        onPressed: null, // Handled by PopupMenuButton
+        label: Text("Create", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add_rounded),
         backgroundColor: const Color(0xFF4F46E5),
         elevation: 4,
-      ) : null,
+      ),
     );
   }
 
@@ -568,6 +678,60 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                 );
               },
             ),
+            const SizedBox(height: 32),
+
+            // 5. My Packages Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("My Packages", style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF111827))),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreatePackageScreen()),
+                    ).then((_) => _refreshData());
+                  },
+                  child: Text("+ Add", style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF4F46E5))),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _futurePackages,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(32),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.design_services_outlined, size: 48, color: Colors.grey.shade300),
+                        const SizedBox(height: 12),
+                        Text("No service packages yet", style: GoogleFonts.plusJakartaSans(color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        Text("Create packages so clients can book your services.", style: GoogleFonts.plusJakartaSans(color: Colors.grey.shade400, fontSize: 12)),
+                      ],
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: snapshot.data!.map((pkg) => _buildPackageCard(pkg)).toList(),
+                );
+              },
+            ),
+
             const SizedBox(height: 80), 
           ],
         ),
@@ -741,6 +905,110 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Package Card
+  Widget _buildPackageCard(Map<String, dynamic> pkg) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  pkg['title'] ?? 'Untitled Package',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: const Color(0xFF111827),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CreatePackageScreen(existingPackage: pkg),
+                        ),
+                      ).then((_) => _refreshData());
+                    },
+                    child: const Icon(Icons.edit_outlined,
+                        size: 20, color: Colors.grey),
+                  ),
+                  const SizedBox(width: 16),
+                  InkWell(
+                    onTap: () => _deletePackage(pkg),
+                    child: const Icon(Icons.delete_outline_rounded,
+                        size: 20, color: Colors.red),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            pkg['description'] ?? '',
+            style: GoogleFonts.plusJakartaSans(
+                color: Colors.grey.shade600, fontSize: 14),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4F46E5).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  "₱${double.parse(pkg['price'].toString()).toStringAsFixed(2)}",
+                  style: GoogleFonts.plusJakartaSans(
+                      color: const Color(0xFF4F46E5),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14),
+                ),
+              ),
+              Row(
+                children: [
+                  Icon(Icons.schedule_rounded,
+                      size: 16, color: Colors.grey.shade500),
+                  const SizedBox(width: 4),
+                  Text(
+                    pkg['delivery_time'] ?? '',
+                    style: GoogleFonts.plusJakartaSans(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),

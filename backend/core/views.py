@@ -381,6 +381,11 @@ class ServicePackageList(generics.ListCreateAPIView):
         serializer.save()
 
 
+class ServicePackageDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ServicePackage.objects.all()
+    serializer_class = ServicePackageSerializer
+
+
 # ==========================
 # PROFILE VIEWS
 # ==========================

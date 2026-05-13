@@ -938,6 +938,90 @@ static Future<bool> createCreativeProfile(
   }
 
   // ===========================================================================
+  // SERVICE PACKAGES
+  // ===========================================================================
+
+  static Future<List<Map<String, dynamic>>> fetchServicePackages(int creativeId) async {
+    final url = Uri.parse('$baseUrl/service-packages/?creative_id=$creativeId');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching service packages: $e");
+      return [];
+    }
+  }
+
+  static Future<bool> createServicePackage({
+    required int creativeId,
+    required String title,
+    required String description,
+    required double price,
+    required String deliveryTime,
+  }) async {
+    final url = Uri.parse('$baseUrl/service-packages/');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'creative': creativeId,
+          'title': title,
+          'description': description,
+          'price': price.toString(),
+          'delivery_time': deliveryTime,
+        }),
+      );
+      print("Create Package Response: ${response.statusCode} ${response.body}");
+      return response.statusCode == 201;
+    } catch (e) {
+      print("Error creating service package: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> updateServicePackage({
+    required int packageId,
+    required String title,
+    required String description,
+    required double price,
+    required String deliveryTime,
+  }) async {
+    final url = Uri.parse('$baseUrl/service-packages/$packageId/');
+    try {
+      final response = await http.patch(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'title': title,
+          'description': description,
+          'price': price.toString(),
+          'delivery_time': deliveryTime,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error updating service package: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> deleteServicePackage(int packageId) async {
+    final url = Uri.parse('$baseUrl/service-packages/$packageId/');
+    try {
+      final response = await http.delete(url);
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print("Error deleting service package: $e");
+      return false;
+    }
+  }
+
+  // ===========================================================================
   // ADMIN FUNCTIONS
   // ===========================================================================
 

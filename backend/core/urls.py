@@ -7,7 +7,7 @@ from .views import (
     CreateCreativeProfile, CreativeProfileDetail,
     ProductList, ProductDetail, 
     OrderList, OrderDetail, 
-    ServicePackageList,
+    ServicePackageList, ServicePackageDetail,
     save_user_interests, 
     recommended_creatives,
     VerifyEmailOTP, 
@@ -74,6 +74,7 @@ urlpatterns = [
     path('orders/<int:pk>/', OrderDetail.as_view(), name='order-detail'), 
     
     path('service-packages/', ServicePackageList.as_view(), name='service-package-list'),
+    path('service-packages/<int:pk>/', ServicePackageDetail.as_view(), name='service-package-detail'),
 
     # Bookings (Services)
     path('bookings/', BookingCreate.as_view(), name='booking-create'),
