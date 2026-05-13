@@ -121,11 +121,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       buttonText = "Message Provider";
     }
 
-    // Price display with Peso sign
-    final double rawPrice = widget.booking.price ?? 1500.00;
+    // Price display — use package price if available, otherwise fallback
+    final double rawPrice = widget.booking.packagePrice ?? widget.booking.price ?? 1500.00;
     final String displayCost = rawPrice.toStringAsFixed(2);
     final String depositCost = (rawPrice * 0.3).toStringAsFixed(2);
     final String balanceCost = (rawPrice * 0.7).toStringAsFixed(2);
+    final bool hasPackage = widget.booking.packageTitle != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -183,8 +184,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   _buildDetailRow(icon: Icons.calendar_today_rounded, label: "Date", value: widget.booking.date),
                   const SizedBox(height: 16),
                   _buildDetailRow(icon: Icons.access_time_rounded, label: "Time", value: widget.booking.time),
+                  if (hasPackage) ...[
+                    const SizedBox(height: 16),
+                    _buildDetailRow(icon: Icons.inventory_2_rounded, label: "Package", value: widget.booking.packageTitle!),
+                  ],
                   const SizedBox(height: 16),
-                  _buildDetailRow(symbol: '₱', label: "Total Cost", value: displayCost),
+                  _buildDetailRow(symbol: '₱', label: hasPackage ? "Package Price" : "Total Cost", value: displayCost),
                   const SizedBox(height: 16),
                   _buildDetailRow(symbol: '₱', label: "30% Down Payment (Due Now)", value: depositCost),
                   const SizedBox(height: 16),

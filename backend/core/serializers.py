@@ -188,12 +188,15 @@ class BookingSerializer(serializers.ModelSerializer):
     creative_user_id = serializers.IntegerField(source='creative.user.id', read_only=True)
     client_name = serializers.CharField(source='client.username', read_only=True)
     payment_proof_url = serializers.SerializerMethodField()
+    package_title = serializers.CharField(source='package.title', read_only=True, default=None)
+    package_price = serializers.DecimalField(source='package.price', max_digits=10, decimal_places=2, read_only=True, default=None)
 
     class Meta:
         model = Booking
         fields = [
             'id', 'client', 'client_name',
             'creative', 'creative_name', 'creative_role', 'creative_user_id',
+            'package', 'package_title', 'package_price',
             'booking_date', 'booking_time', 'project_type',
             'requirements', 'status', 'created_at', 'payment_proof_url'
         ]

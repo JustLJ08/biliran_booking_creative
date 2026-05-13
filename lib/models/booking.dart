@@ -17,6 +17,11 @@ class Booking {
   final double? price;   
   final String? paymentProofUrl;
 
+  // --- PACKAGE FIELDS ---
+  final int? packageId;
+  final String? packageTitle;
+  final double? packagePrice;
+
   Booking({
     this.id,
     required this.creativeId,
@@ -32,19 +37,33 @@ class Booking {
     this.clientId, 
     this.price,    
     this.paymentProofUrl,
+    // --- PACKAGE ---
+    this.packageId,
+    this.packageTitle,
+    this.packagePrice,
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'creative': creativeId,
       'booking_date': date,
       'booking_time': time,
       'requirements': requirements,
       'status': 'pending',
     };
+    if (packageId != null) {
+      map['package'] = packageId;
+    }
+    return map;
   }
 
   factory Booking.fromJson(Map<String, dynamic> json) {
+    // Parse package price if available, otherwise fall back to price field
+    double? parsedPackagePrice;
+    if (json['package_price'] != null) {
+      parsedPackagePrice = double.tryParse(json['package_price'].toString());
+    }
+
     return Booking(
       id: json['id'],
       creativeId: json['creative'],
@@ -68,6 +87,11 @@ class Booking {
       price: json['price'] != null 
           ? double.tryParse(json['price'].toString()) 
           : 1500.00, // <--- FORCED MOCK PRICE (Change 1500.00 to whatever you want)
+
+      // --- PACKAGE FIELDS ---
+      packageId: json['package'],
+      packageTitle: json['package_title'],
+      packagePrice: parsedPackagePrice,
     );
   }
 }
