@@ -11,6 +11,8 @@ import '../models/creative.dart';
 import '../models/booking.dart';
 import '../models/product.dart';
 import '../models/order.dart';
+import '../models/paginated_result.dart';
+import 'cache_service.dart';
 
 class ApiService {
   static const bool isProduction = bool.fromEnvironment('dart.vm.product');
@@ -167,6 +169,7 @@ static Future<bool> isAdmin() async {
 static Future<void> logout() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.clear();
+  CacheService.clearAll();
 }
 
   // ===========================================================================
@@ -336,14 +339,21 @@ static Future<void> logout() async {
     final userId = prefs.getInt('userId');
     if (userId == null) return [];
 
+    final cacheKey = 'recommendations_$userId';
+    final cached = CacheService.get<List<Creative>>(cacheKey);
+    if (cached != null) return cached;
+
     final url = Uri.parse('$baseUrl/creatives/recommended/?user_id=$userId');
 
     try {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => Creative.fromJson(json)).toList();
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
+        final result = data.map((json) => Creative.fromJson(json)).toList();
+        CacheService.set(cacheKey, result, ttl: const Duration(minutes: 5));
+        return result;
       } else {
         return []; 
       }
@@ -429,6 +439,10 @@ static Future<void> logout() async {
   // ===========================================================================
 
   static Future<List<Industry>> fetchIndustries({String? query}) async {
+    final cacheKey = 'industries_${query ?? "all"}';
+    final cached = CacheService.get<List<Industry>>(cacheKey);
+    if (cached != null) return cached;
+
     String endpoint = '$baseUrl/industries/';
     if (query != null && query.isNotEmpty) {
       endpoint += '?search=$query';
@@ -437,11 +451,13 @@ static Future<void> logout() async {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         final industries = data.map((json) => Industry.fromJson(json)).toList();
         final ids = <int>{};
         final uniqueIndustries =
             industries.where((ind) => ids.add(ind.id)).toList();
+        CacheService.set(cacheKey, uniqueIndustries, ttl: const Duration(minutes: 30));
         return uniqueIndustries;
       } else {
         throw Exception('Failed to load industries');
@@ -452,12 +468,19 @@ static Future<void> logout() async {
   }
 
   static Future<List<SubCategory>> fetchSubCategories(int industryId) async {
+    final cacheKey = 'subcategories_$industryId';
+    final cached = CacheService.get<List<SubCategory>>(cacheKey);
+    if (cached != null) return cached;
+
     final url = Uri.parse('$baseUrl/subcategories/?industry_id=$industryId');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => SubCategory.fromJson(json)).toList();
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
+        final result = data.map((json) => SubCategory.fromJson(json)).toList();
+        CacheService.set(cacheKey, result, ttl: const Duration(minutes: 30));
+        return result;
       } else {
         throw Exception('Failed to load subcategories');
       }
@@ -471,7 +494,8 @@ static Future<void> logout() async {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         return data.map((json) => SubCategory.fromJson(json)).toList();
       } else {
         throw Exception('Failed to search roles');
@@ -482,12 +506,19 @@ static Future<void> logout() async {
   }
 
   static Future<List<Creative>> fetchCreatives(int subCategoryId) async {
+    final cacheKey = 'creatives_$subCategoryId';
+    final cached = CacheService.get<List<Creative>>(cacheKey);
+    if (cached != null) return cached;
+
     final url = Uri.parse('$baseUrl/creatives/?subcategory_id=$subCategoryId');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => Creative.fromJson(json)).toList();
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
+        final result = data.map((json) => Creative.fromJson(json)).toList();
+        CacheService.set(cacheKey, result, ttl: const Duration(minutes: 5));
+        return result;
       } else {
         throw Exception('Failed to load creatives');
       }
@@ -503,7 +534,8 @@ static Future<void> logout() async {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         return data.map((json) => Creative.fromJson(json)).toList();
       }
       return [];
@@ -531,7 +563,8 @@ static Future<void> logout() async {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         return data.map((json) => Booking.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load bookings');
@@ -726,7 +759,8 @@ static Future<bool> createCreativeProfile(
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         return data.map((json) => Product.fromJson(json)).toList();
       }
       return [];
@@ -741,7 +775,8 @@ static Future<bool> createCreativeProfile(
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         return data.map((json) => Product.fromJson(json)).toList();
       }
       return [];
@@ -804,6 +839,7 @@ static Future<bool> createCreativeProfile(
 
     print("Create Product Response: ${response.statusCode} ${response.body}");
 
+    CacheService.invalidatePrefix('products_');
     return response.statusCode == 201;
   } catch (e) {
     print("Error creating product: $e");
@@ -867,6 +903,7 @@ static Future<bool> createCreativeProfile(
     final url = Uri.parse('$baseUrl/products/$productId/');
     try {
       final response = await http.delete(url);
+      CacheService.invalidatePrefix('products_');
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       print("Error deleting product: $e");
@@ -927,7 +964,8 @@ static Future<bool> createCreativeProfile(
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         return data.map((json) => Order.fromJson(json)).toList();
       }
       return [];
@@ -946,7 +984,8 @@ static Future<bool> createCreativeProfile(
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         return data.cast<Map<String, dynamic>>();
       }
       return [];
@@ -1030,7 +1069,8 @@ static Future<bool> createCreativeProfile(
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded is List ? decoded : (decoded['results'] ?? []);
         return data.map((json) => Creative.fromJson(json)).toList();
       }
       return [];
@@ -1143,11 +1183,17 @@ static Future<bool> createCreativeProfile(
 
   /// Fetch platform-wide admin reports (revenue, trends, top providers)
   static Future<Map<String, dynamic>> fetchAdminReports() async {
+    const cacheKey = 'admin_reports';
+    final cached = CacheService.get<Map<String, dynamic>>(cacheKey);
+    if (cached != null) return cached;
+
     final url = Uri.parse('$baseUrl/admin/reports/');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        CacheService.set(cacheKey, data, ttl: const Duration(minutes: 10));
+        return data;
       }
     } catch (e) {
       print("Fetch admin reports error: $e");
@@ -1161,11 +1207,17 @@ static Future<bool> createCreativeProfile(
     final userId = prefs.getInt('userId');
     if (userId == null) return {};
 
+    final cacheKey = 'provider_reports_$userId';
+    final cached = CacheService.get<Map<String, dynamic>>(cacheKey);
+    if (cached != null) return cached;
+
     final url = Uri.parse('$baseUrl/provider/reports/?user_id=$userId');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        CacheService.set(cacheKey, data, ttl: const Duration(minutes: 5));
+        return data;
       }
     } catch (e) {
       print("Fetch provider reports error: $e");

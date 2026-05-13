@@ -5,6 +5,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, generics, filters, viewsets
 from django.utils import timezone
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 
@@ -444,6 +446,7 @@ def save_user_interests(request):
 
 
 @api_view(['GET'])
+@cache_page(300)  # Cache recommendations for 5 minutes
 def recommended_creatives(request):
     """Content-based recommendation combining 3 signals:
     1. Explicit preferences (UserInterest) — highest weight
@@ -760,6 +763,7 @@ class ConversationMessagesView(APIView):
 class AdminReportsView(APIView):
     """Platform-wide reports for admin dashboard."""
 
+    @method_decorator(cache_page(600))  # Cache admin reports for 10 minutes
     def get(self, request):
         from django.db.models import Sum, Count, F, Value, DecimalField
         from django.db.models.functions import Coalesce, TruncMonth
