@@ -1137,4 +1137,40 @@ static Future<bool> createCreativeProfile(
   return {"has_profile": false, "is_verified": false};
 }
 
+  // =========================================================
+  //  REPORTS
+  // =========================================================
+
+  /// Fetch platform-wide admin reports (revenue, trends, top providers)
+  static Future<Map<String, dynamic>> fetchAdminReports() async {
+    final url = Uri.parse('$baseUrl/admin/reports/');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      print("Fetch admin reports error: $e");
+    }
+    return {};
+  }
+
+  /// Fetch provider-specific reports (revenue breakdown, conversion, trends)
+  static Future<Map<String, dynamic>> fetchProviderReports() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+    if (userId == null) return {};
+
+    final url = Uri.parse('$baseUrl/provider/reports/?user_id=$userId');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      print("Fetch provider reports error: $e");
+    }
+    return {};
+  }
+
 }

@@ -16,6 +16,7 @@ from .views import (
     save_preferences,
     # Admin Views
     AdminPendingCreatives, admin_manage_creative,
+    AdminReportsView, ProviderReportsView,
     # Contract Views
     get_booking_contract, sign_contract,
     # Chat ViewSet
@@ -97,5 +98,7 @@ urlpatterns = [
     path('admin/pending-creatives/', AdminPendingCreatives.as_view(), name='admin-pending-list'),
     path('admin/manage-creative/<int:pk>/', admin_manage_creative, name='admin-manage-creative'),
 
-    
+    # Reports
+    path('admin/reports/', AdminReportsView.as_view(), name='admin-reports'),
+    path('provider/reports/', ProviderReportsView.as_view(), name='provider-reports'),
 ]

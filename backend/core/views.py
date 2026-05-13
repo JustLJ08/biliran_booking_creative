@@ -753,6 +753,175 @@ class ConversationMessagesView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+# ==========================
+# REPORTS VIEWS
+# ==========================
+
+class AdminReportsView(APIView):
+    """Platform-wide reports for admin dashboard."""
+
+    def get(self, request):
+        from django.db.models import Sum, Count, F, Value, DecimalField
+        from django.db.models.functions import Coalesce, TruncMonth
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
+
+        now = timezone.now()
+        six_months_ago = now - relativedelta(months=6)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Basic counts
+        total_bookings = Booking.objects.count()
+        bookings_this_month = Booking.objects.filter(created_at__gte=month_start).count()
+
+        # Completed bookings revenue
+        completed_bookings = Booking.objects.filter(status='completed')
+        booking_revenue = 0.0
+        for b in completed_bookings:
+            if b.package and b.package.price:
+                booking_revenue += float(b.package.price)
+            else:
+                booking_revenue += float(b.creative.hourly_rate)
+
+        # Delivered orders revenue
+        delivered_orders = Order.objects.filter(status='delivered')
+        order_revenue = float(delivered_orders.aggregate(
+            total=Coalesce(Sum('total_price'), Value(0), output_field=DecimalField())
+        )['total'])
+
+        total_revenue = booking_revenue + order_revenue
+        total_sales = completed_bookings.count() + delivered_orders.count()
+
+        # Revenue by category (industry)
+        category_map = {}
+        for b in completed_bookings.select_related('creative__sub_category__industry'):
+            industry = b.creative.sub_category.industry.name
+            price = float(b.package.price) if b.package and b.package.price else float(b.creative.hourly_rate)
+            category_map[industry] = category_map.get(industry, 0) + price
+        revenue_by_category = [{'category': k, 'revenue': v} for k, v in sorted(category_map.items(), key=lambda x: -x[1])]
+
+        # Monthly trend (last 6 months)
+        monthly_trend = []
+        for i in range(5, -1, -1):
+            m = now - relativedelta(months=i)
+            m_start = m.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            m_end = (m_start + relativedelta(months=1))
+            month_bookings = Booking.objects.filter(status='completed', created_at__gte=m_start, created_at__lt=m_end)
+            month_rev = 0.0
+            for b in month_bookings:
+                if b.package and b.package.price:
+                    month_rev += float(b.package.price)
+                else:
+                    month_rev += float(b.creative.hourly_rate)
+            month_orders = Order.objects.filter(status='delivered', created_at__gte=m_start, created_at__lt=m_end)
+            month_order_rev = float(month_orders.aggregate(
+                total=Coalesce(Sum('total_price'), Value(0), output_field=DecimalField())
+            )['total'])
+            monthly_trend.append({
+                'month': m_start.strftime('%Y-%m'),
+                'revenue': month_rev + month_order_rev,
+                'count': month_bookings.count() + month_orders.count(),
+            })
+
+        # Top 5 providers by revenue
+        provider_map = {}
+        for b in completed_bookings.select_related('creative__user'):
+            name = f"{b.creative.user.first_name} {b.creative.user.last_name}"
+            price = float(b.package.price) if b.package and b.package.price else float(b.creative.hourly_rate)
+            if name not in provider_map:
+                provider_map[name] = {'revenue': 0, 'bookings': 0}
+            provider_map[name]['revenue'] += price
+            provider_map[name]['bookings'] += 1
+        top_providers = sorted(
+            [{'name': k, 'revenue': v['revenue'], 'bookings': v['bookings']} for k, v in provider_map.items()],
+            key=lambda x: -x['revenue']
+        )[:5]
+
+        return Response({
+            'total_bookings': total_bookings,
+            'bookings_this_month': bookings_this_month,
+            'total_revenue': total_revenue,
+            'total_sales': total_sales,
+            'revenue_by_category': revenue_by_category,
+            'monthly_trend': monthly_trend,
+            'top_providers': top_providers,
+        })
+
+
+class ProviderReportsView(APIView):
+    """Per-provider reports for provider dashboard."""
+
+    def get(self, request):
+        from django.db.models import Sum, Value, DecimalField
+        from django.db.models.functions import Coalesce
+        from dateutil.relativedelta import relativedelta
+
+        user_id = request.query_params.get('user_id')
+        if not user_id:
+            return Response({'error': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+
+        try:
+            profile = CreativeProfile.objects.get(user_id=user_id)
+        except CreativeProfile.DoesNotExist:
+            return Response({'error': 'Creative profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Booking revenue
+        completed = Booking.objects.filter(creative=profile, status='completed')
+        booking_revenue = 0.0
+        for b in completed:
+            if b.package and b.package.price:
+                booking_revenue += float(b.package.price)
+            else:
+                booking_revenue += float(profile.hourly_rate)
+
+        # Product revenue
+        delivered = Order.objects.filter(product__creative=profile, status='delivered')
+        product_revenue = float(delivered.aggregate(
+            total=Coalesce(Sum('total_price'), Value(0), output_field=DecimalField())
+        )['total'])
+
+        total_revenue = booking_revenue + product_revenue
+        total_sales = completed.count() + delivered.count()
+
+        # Monthly trend (last 6 months)
+        monthly_trend = []
+        for i in range(5, -1, -1):
+            m = now - relativedelta(months=i)
+            m_start = m.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            m_end = m_start + relativedelta(months=1)
+            mb = Booking.objects.filter(creative=profile, status='completed', created_at__gte=m_start, created_at__lt=m_end)
+            rev = 0.0
+            for b in mb:
+                if b.package and b.package.price:
+                    rev += float(b.package.price)
+                else:
+                    rev += float(profile.hourly_rate)
+            mo = Order.objects.filter(product__creative=profile, status='delivered', created_at__gte=m_start, created_at__lt=m_end)
+            orev = float(mo.aggregate(
+                total=Coalesce(Sum('total_price'), Value(0), output_field=DecimalField())
+            )['total'])
+            monthly_trend.append({
+                'month': m_start.strftime('%Y-%m'),
+                'revenue': rev + orev,
+            })
+
+        # Conversion rate
+        total_bookings = Booking.objects.filter(creative=profile).count()
+        successful = Booking.objects.filter(creative=profile, status__in=['confirmed', 'completed']).count()
+        conversion_rate = round((successful / total_bookings * 100), 1) if total_bookings > 0 else 0.0
+
+        return Response({
+            'total_revenue': total_revenue,
+            'total_sales': total_sales,
+            'booking_revenue': booking_revenue,
+            'product_revenue': product_revenue,
+            'monthly_trend': monthly_trend,
+            'conversion_rate': conversion_rate,
+        })
+
+
 class AdminBookingList(generics.ListAPIView):
     queryset = Booking.objects.all().order_by('-created_at')
     serializer_class = BookingSerializer

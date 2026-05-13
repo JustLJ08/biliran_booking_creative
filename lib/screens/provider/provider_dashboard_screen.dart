@@ -3,6 +3,7 @@ import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../services/api_service.dart';
 import '../../models/booking.dart';
 import '../../models/order.dart';
@@ -97,6 +98,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   late Future<List<Order>> _futureOrders;
   late Future<List<Product>> _futureProducts;
   late Future<List<Map<String, dynamic>>> _futurePackages;
+  late Future<Map<String, dynamic>> _futureReports;
 
   // State variable to track message count for Badge
   int _unreadMsgCount = 0;
@@ -129,6 +131,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       _futureOrders = ApiService.fetchProviderOrders();
       _futureProducts = _fetchProductsChain();
       _futurePackages = _fetchPackagesChain();
+      _futureReports = ApiService.fetchProviderReports();
 
       // Update badge count based on ALL bookings (pending + confirmed)
       _futureAllBookings.then((bookings) {
@@ -528,17 +531,23 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.trending_up, color: Colors.greenAccent, size: 16),
-                            const SizedBox(width: 4),
-                            Text("+12.5% this week", style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: _futureReports,
+                        builder: (context, reportSnap) {
+                          final rate = reportSnap.hasData ? (reportSnap.data!['conversion_rate'] ?? 0).toDouble() : 0.0;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20)),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(rate > 50 ? Icons.trending_up : Icons.trending_flat, color: Colors.greenAccent, size: 16),
+                                const SizedBox(width: 4),
+                                Text("${rate.toStringAsFixed(1)}% conversion", style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -731,6 +740,10 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                 );
               },
             ),
+            const SizedBox(height: 32),
+
+            // 6. Reports Section
+            _buildReportsSection(),
 
             const SizedBox(height: 80), 
           ],
@@ -1013,6 +1026,181 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         ],
       ),
     );
+  }
+
+  // =========================================================================
+  // REPORTS SECTION
+  // =========================================================================
+  Widget _buildReportsSection() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _futureReports,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))),
+          );
+        }
+
+        final data = snapshot.data ?? {};
+        if (data.isEmpty) return const SizedBox.shrink();
+
+        final bookingRevenue = (data['booking_revenue'] ?? 0).toDouble();
+        final productRevenue = (data['product_revenue'] ?? 0).toDouble();
+        final conversionRate = (data['conversion_rate'] ?? 0).toDouble();
+        final monthlyTrend = List<Map<String, dynamic>>.from(data['monthly_trend'] ?? []);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Reports", style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF111827))),
+            const SizedBox(height: 16),
+
+            // Mini cards row
+            Row(
+              children: [
+                Expanded(child: _buildMiniReportCard("Booking\nRevenue", "₱${bookingRevenue.toStringAsFixed(0)}", Icons.calendar_today_rounded, const Color(0xFF4F46E5))),
+                const SizedBox(width: 10),
+                Expanded(child: _buildMiniReportCard("Product\nRevenue", "₱${productRevenue.toStringAsFixed(0)}", Icons.shopping_bag_rounded, const Color(0xFF10B981))),
+                const SizedBox(width: 10),
+                Expanded(child: _buildMiniReportCard("Conversion\nRate", "${conversionRate.toStringAsFixed(1)}%", Icons.trending_up_rounded, const Color(0xFFF59E0B))),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Monthly Earnings Chart
+            Text("Monthly Earnings", style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF111827))),
+            const SizedBox(height: 4),
+            Text("Last 6 months", style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.grey.shade500)),
+            const SizedBox(height: 16),
+
+            Container(
+              height: 200,
+              padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5))],
+              ),
+              child: _buildLineChart(monthlyTrend),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMiniReportCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 12),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF111827))),
+          const SizedBox(height: 2),
+          Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLineChart(List<Map<String, dynamic>> trend) {
+    if (trend.isEmpty) return const SizedBox.shrink();
+
+    final maxRevenue = trend.map((t) => (t['revenue'] ?? 0).toDouble()).reduce((a, b) => a > b ? a : b);
+    final maxY = maxRevenue > 0 ? maxRevenue * 1.3 : 1000.0;
+
+    final spots = trend.asMap().entries.map((entry) {
+      return FlSpot(entry.key.toDouble(), (entry.value['revenue'] ?? 0).toDouble());
+    }).toList();
+
+    return LineChart(
+      LineChartData(
+        maxY: maxY,
+        minY: 0,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: const Color(0xFF4F46E5),
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                radius: 4,
+                color: const Color(0xFF4F46E5),
+                strokeWidth: 2,
+                strokeColor: Colors.white,
+              ),
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              color: const Color(0xFF4F46E5).withOpacity(0.08),
+            ),
+          ),
+        ],
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                final idx = value.toInt();
+                if (idx < 0 || idx >= trend.length) return const SizedBox.shrink();
+                final month = trend[idx]['month'] ?? '';
+                final parts = month.split('-');
+                final label = parts.length == 2 ? _monthLabel(int.tryParse(parts[1]) ?? 0) : '';
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxY / 4,
+          getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+        ),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            tooltipRoundedRadius: 8,
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                return LineTooltipItem(
+                  '₱${spot.y.toStringAsFixed(0)}',
+                  GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                );
+              }).toList();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _monthLabel(int month) {
+    const labels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return month >= 1 && month <= 12 ? labels[month] : '';
   }
 
   // --- TAB 2: BOOKINGS (Clickable) ---
