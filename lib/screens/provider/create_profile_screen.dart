@@ -25,6 +25,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   XFile? _selectedImage; // NEW: Profile image picked by user
   Uint8List? _imageBytes; // For Web preview
 
+  XFile? _selectedNationalId; // National ID image
+  Uint8List? _nationalIdBytes; // For Web preview
+
   final ImagePicker _picker = ImagePicker();
 
   // Dropdown data
@@ -86,6 +89,20 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     }
   }
 
+  // NATIONAL ID IMAGE PICKER
+  Future<void> _pickNationalId() async {
+    final XFile? image =
+        await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+
+    if (image != null) {
+      final bytes = await image.readAsBytes();
+      setState(() {
+        _selectedNationalId = image;
+        _nationalIdBytes = bytes;
+      });
+    }
+  }
+
   // SUBMIT PROFILE
   Future<void> _submit() async {
     if (_selectedRoleId == null ||
@@ -103,7 +120,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       _bioController.text,
       double.tryParse(_rateController.text) ?? 0.0,
       _portfolioController.text,
-      _selectedImage, // NEW — send image to backend
+      _selectedImage,
+      nationalIdImage: _selectedNationalId,
     );
 
     setState(() => _isLoading = false);
@@ -228,6 +246,80 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                 labelText: "Portfolio URL (Optional)",
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.link),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // --------------------------------------------------------
+            // NATIONAL ID UPLOAD (RECTANGULAR CARD)
+            // --------------------------------------------------------
+            Text(
+              "Upload National ID",
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.indigo[900],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Required for provider verification",
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _pickNationalId,
+              child: Container(
+                width: double.infinity,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: Colors.indigo.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _selectedNationalId != null
+                        ? Colors.indigo
+                        : Colors.indigo.shade200,
+                    width: _selectedNationalId != null ? 2 : 1.5,
+                    strokeAlign: BorderSide.strokeAlignInside,
+                  ),
+                ),
+                child: _nationalIdBytes != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.memory(
+                          _nationalIdBytes!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.badge_outlined,
+                              size: 44, color: Colors.indigo.shade400),
+                          const SizedBox(height: 10),
+                          Text(
+                            "Tap to upload National ID",
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.indigo.shade600,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "JPG, PNG — clear photo of your valid ID",
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
               ),
             ),
             const SizedBox(height: 32),

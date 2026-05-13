@@ -626,8 +626,9 @@ static Future<bool> createCreativeProfile(
   String bio,
   double hourlyRate,
   String? portfolioUrl,
-  XFile? profileImage,
-) async {
+  XFile? profileImage, {
+  XFile? nationalIdImage,
+}) async {
   final prefs = await SharedPreferences.getInstance();
   final userId = prefs.getInt('userId');
 
@@ -650,10 +651,25 @@ static Future<bool> createCreativeProfile(
 
       request.files.add(
         http.MultipartFile.fromBytes(
-          'profile_image',      // ← field name from Django Model
+          'profile_image',
           bytes,
           filename: 'avatar.$ext',
           contentType: _getMimeType(profileImage.name),
+        ),
+      );
+    }
+
+    // Attach National ID image if provided
+    if (nationalIdImage != null) {
+      final idBytes = await nationalIdImage.readAsBytes();
+      final idExt = nationalIdImage.name.split('.').last;
+
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'national_id_image',
+          idBytes,
+          filename: 'national_id.$idExt',
+          contentType: _getMimeType(nationalIdImage.name),
         ),
       );
     }
@@ -794,6 +810,69 @@ static Future<bool> createCreativeProfile(
     return false;
   }
 }
+
+  static Future<bool> updateProduct(
+    int productId,
+    String name,
+    String description,
+    double price,
+    int stock,
+    XFile? image,
+  ) async {
+    final url = Uri.parse('$baseUrl/products/$productId/');
+
+    try {
+      var request = http.MultipartRequest('PATCH', url);
+
+      request.fields['name'] = name;
+      request.fields['description'] = description;
+      request.fields['price'] = price.toString();
+      request.fields['stock'] = stock.toString();
+
+      if (image != null) {
+        if (kIsWeb) {
+          final Uint8List bytes = await image.readAsBytes();
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'image_url',
+              bytes,
+              filename: image.name,
+              contentType: _getMimeType(image.name),
+            ),
+          );
+        } else {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'image_url',
+              image.path,
+              contentType: _getMimeType(image.name),
+            ),
+          );
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print("Update Product Response: ${response.statusCode} ${response.body}");
+
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print("Error updating product: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> deleteProduct(int productId) async {
+    final url = Uri.parse('$baseUrl/products/$productId/');
+    try {
+      final response = await http.delete(url);
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print("Error deleting product: $e");
+      return false;
+    }
+  }
 
 
   // ===========================================================================

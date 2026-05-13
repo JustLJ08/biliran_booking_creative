@@ -69,6 +69,9 @@ class CreativeProfile(models.Model):
     # Profile Image for the avatar in the app
     profile_image = models.ImageField(upload_to='creative_avatars/', blank=True, null=True)
     
+    # National ID Image for admin verification
+    national_id_image = models.ImageField(upload_to='national_ids/', blank=True, null=True)
+    
     # Kept as hourly_rate as requested
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
@@ -125,7 +128,7 @@ class ServicePackage(models.Model):
 class Product(models.Model):
     creative = models.ForeignKey(CreativeProfile, on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=200)
-    description = models.TextField()
+    description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.IntegerField(default=1)
     

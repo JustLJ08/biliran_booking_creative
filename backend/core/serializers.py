@@ -126,13 +126,16 @@ class CreativeProfileSerializer(serializers.ModelSerializer):
     # 5. Profile Image URL
     profile_image_url = serializers.SerializerMethodField()
 
+    # 6. National ID Image URL
+    national_id_image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = CreativeProfile
         fields = [
             'id', 'user', 'role_name', 'industry_name',
             'sub_category', 'sub_category_id',
             'bio', 'hourly_rate', 'rating', 'portfolio_url',
-            'profile_image_url', 
+            'profile_image_url', 'national_id_image_url',
             'is_verified', 'packages', 'products'
         ]
 
@@ -154,6 +157,24 @@ class CreativeProfileSerializer(serializers.ModelSerializer):
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).warning(f"Error getting profile image URL for CreativeProfile {obj.id}: {e}")
+                return None
+        return None
+
+    def get_national_id_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.national_id_image:
+            try:
+                url = obj.national_id_image.url
+                if url.startswith('http') and 'cloudinary.com' in url:
+                    return url
+                if url.startswith('http'):
+                    return url
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Error getting national ID image URL for CreativeProfile {obj.id}: {e}")
                 return None
         return None
 

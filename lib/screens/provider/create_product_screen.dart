@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
+import '../../models/product.dart';
+import '../../utils/image_url_helper.dart';
 
 class CreateProductScreen extends StatefulWidget {
-  const CreateProductScreen({super.key});
+  final Product? existingProduct;
+  const CreateProductScreen({super.key, this.existingProduct});
 
   @override
   State<CreateProductScreen> createState() => _CreateProductScreenState();
@@ -24,6 +27,17 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   bool _isLoading = false;
 
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingProduct != null) {
+      _nameController.text = widget.existingProduct!.name;
+      _descController.text = widget.existingProduct!.description ?? '';
+      _priceController.text = widget.existingProduct!.price.toString();
+      _stockController.text = widget.existingProduct!.stock.toString();
+    }
+  }
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -62,20 +76,32 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       }
 
       // 2. API Call (Multipart upload handled in ApiService)
-      final success = await ApiService.createProduct(
-        _nameController.text,
-        _descController.text,
-        double.tryParse(_priceController.text) ?? 0.0,
-        int.tryParse(_stockController.text) ?? 0,
-        creativeId,
-        _selectedImage,
-      );
+      bool success;
+      if (widget.existingProduct != null) {
+        success = await ApiService.updateProduct(
+          widget.existingProduct!.id,
+          _nameController.text,
+          _descController.text,
+          double.tryParse(_priceController.text) ?? 0.0,
+          int.tryParse(_stockController.text) ?? 0,
+          _selectedImage,
+        );
+      } else {
+        success = await ApiService.createProduct(
+          _nameController.text,
+          _descController.text,
+          double.tryParse(_priceController.text) ?? 0.0,
+          int.tryParse(_stockController.text) ?? 0,
+          creativeId,
+          _selectedImage,
+        );
+      }
 
       if (!mounted) return;
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Product Added Successfully!"),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(widget.existingProduct != null ? "Product Updated Successfully!" : "Product Added Successfully!"),
           backgroundColor: Colors.green,
         ));
         Navigator.pop(context);
@@ -103,7 +129,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Add Product", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+        title: Text(widget.existingProduct != null ? "Edit Product" : "Add Product", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -153,7 +179,35 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                           ),
                         ],
                       )
-                    : Column(
+                    : (widget.existingProduct != null && widget.existingProduct!.imageUrl != null && widget.existingProduct!.imageUrl!.isNotEmpty)
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.network(
+                                fixImageUrl(widget.existingProduct!.imageUrl!),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.broken_image, size: 40, color: Colors.grey);
+                                },
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: _pickImage,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.edit, color: Colors.white, size: 20),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
@@ -249,7 +303,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                 child: _isLoading 
                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
                   : Text(
-                      "List Item for Sale",
+                      widget.existingProduct != null ? "Update Item" : "List Item for Sale",
                       style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
               ),

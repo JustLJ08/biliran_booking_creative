@@ -207,6 +207,45 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     }
   }
 
+  Future<void> _deleteProduct(Product product) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Product", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+        content: Text("Are you sure you want to delete '${product.name}'?", style: GoogleFonts.plusJakartaSans()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      bool success = await ApiService.deleteProduct(product.id);
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Product deleted successfully"), backgroundColor: Colors.green),
+          );
+          _refreshData();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to delete product"), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
   void _logout() async {
     await ApiService.logout();
     if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
@@ -679,9 +718,24 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                         ),
                       ),
                     ),
-                    InkWell(
-                      onTap: () {}, // Edit action
-                      child: const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => CreateProductScreen(existingProduct: product)),
+                            ).then((_) => _refreshData());
+                          }, // Edit action
+                          child: const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
+                        ),
+                        const SizedBox(width: 12),
+                        InkWell(
+                          onTap: () => _deleteProduct(product), // Delete action
+                          child: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                        ),
+                      ],
                     )
                   ],
                 ),

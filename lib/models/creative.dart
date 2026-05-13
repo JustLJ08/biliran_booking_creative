@@ -9,6 +9,7 @@ class Creative {
   final double rating;
   final String? portfolioUrl;
   final String? profileImageUrl; // This fixes "The getter 'profileImageUrl' isn't defined"
+  final String? nationalIdImageUrl;
 
   Creative({
     required this.id,
@@ -19,6 +20,7 @@ class Creative {
     required this.rating,
     this.portfolioUrl,
     this.profileImageUrl,
+    this.nationalIdImageUrl,
   });
 
   factory Creative.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class Creative {
       
       portfolioUrl: json['portfolio_url'],
       profileImageUrl: json['profile_image_url'],
+      nationalIdImageUrl: json['national_id_image_url'],
     );
   }
 
