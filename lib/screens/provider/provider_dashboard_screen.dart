@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart'; // Added for kIsWeb check
 import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/api_service.dart';
@@ -648,7 +650,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
               future: _futureProducts,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+                  return const SkeletonGridLoader(itemCount: 4, crossAxisCount: 2, childAspectRatio: 0.75);
                 }
                 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -711,7 +713,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
               future: _futurePackages,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+                  return const SkeletonListLoader(itemCount: 3, itemHeight: 120);
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -1036,9 +1038,15 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       future: _futureReports,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               Text("Reports", style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF111827))),
+               const SizedBox(height: 16),
+               const SkeletonLoader(width: double.infinity, height: 100, borderRadius: 16),
+               const SizedBox(height: 24),
+               const SkeletonLoader(width: double.infinity, height: 200, borderRadius: 20),
+            ]
           );
         }
 
@@ -1208,7 +1216,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     return FutureBuilder<List<Booking>>(
       future: _futureAllBookings,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snapshot.connectionState == ConnectionState.waiting) return const SkeletonListLoader(itemCount: 5, itemHeight: 150);
         if (!snapshot.hasData || snapshot.data!.isEmpty) return _buildEmptyState("No booking requests");
 
         return ListView.separated(
@@ -1240,7 +1248,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     return FutureBuilder<List<Order>>(
       future: _futureOrders,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snapshot.connectionState == ConnectionState.waiting) return const SkeletonListLoader(itemCount: 5, itemHeight: 120);
         if (!snapshot.hasData || snapshot.data!.isEmpty) return _buildEmptyState("No orders received yet");
 
         return ListView.separated(
@@ -1304,7 +1312,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             future: _futureAllBookings,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonListLoader(itemCount: 6, itemHeight: 80);
               }
 
               if (!snapshot.hasData || snapshot.data!.isEmpty) {

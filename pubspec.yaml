@@ -35,6 +35,9 @@ dependencies:
 
   # Charts for Reports
   fl_chart: ^0.69.2
+  
+  # Skeleton Loading
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/sub_category.dart';
 import '../../models/creative.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'creative_detail_screen.dart';
 
 class CreativeListScreen extends StatefulWidget {
@@ -45,7 +46,7 @@ class _CreativeListScreenState extends State<CreativeListScreen> {
         future: futureCreatives,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const SkeletonListLoader(itemCount: 5, itemHeight: 120);
           } else if (snapshot.hasError) {
             return Center(
               child: Text(

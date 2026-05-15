@@ -7,6 +7,7 @@ import '../../utils/image_url_helper.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Required for favorites persistence
 import '../../services/api_service.dart';
 import '../../models/industry.dart';
@@ -519,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen> {
               future: _futureOrders,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                  return const SkeletonListLoader(itemCount: 4, itemHeight: 100);
                 }
                 
                 if (snapshot.hasError) {
@@ -711,8 +712,7 @@ Widget _buildInboxTab() {
             future: _futureInbox,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                    child: CircularProgressIndicator(color: kPrimaryColor));
+                return const SkeletonListLoader(itemCount: 5, itemHeight: 80);
               }
 
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -1158,7 +1158,13 @@ Widget _buildInboxTab() {
             future: _futureRecommended,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: kPrimaryColor)));
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: 4,
+                  separatorBuilder: (ctx, i) => const SizedBox(width: 16),
+                  itemBuilder: (context, index) => const SkeletonLoader(width: 165, height: 215, borderRadius: 20),
+                );
               }
 
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -1397,7 +1403,7 @@ Widget _buildInboxTab() {
           future: _futureAllProducts,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: kPrimaryColor)));
+              return const SkeletonGridLoader(itemCount: 4, crossAxisCount: 2, childAspectRatio: 0.72);
             }
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Center(
@@ -1657,7 +1663,7 @@ Widget _buildInboxTab() {
   }
 
   Widget _buildSearchResults() {
-    if (_searchResults == null) return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: kPrimaryColor)));
+    if (_searchResults == null) return const SkeletonListLoader(itemCount: 5, itemHeight: 80);
     if (_searchResults!.isEmpty) {
       return Center(
         child: Padding(

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/industry.dart';
 import '../../models/sub_category.dart';
 import '../../services/api_service.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'creative_list_screen.dart'; // Navigate to the list of people
 
 class SubCategoryScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
         future: futureSubCategories,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const SkeletonListLoader(itemCount: 8, itemHeight: 60);
           } else if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../models/booking.dart';
 import '../../services/api_service.dart';
 import '../shared/booking_detail_screen.dart'; 
+import '../../widgets/skeleton_loader.dart';
 import '../../widgets/upload_proof_bottom_sheet.dart';
 
 class MyBookingsScreen extends StatefulWidget {
@@ -209,7 +210,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
           future: _futureBookings,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator(color: _primaryColor));
+              return const SkeletonListLoader(itemCount: 4, itemHeight: 180);
             } else if (snapshot.hasError) {
               return _buildErrorState();
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
